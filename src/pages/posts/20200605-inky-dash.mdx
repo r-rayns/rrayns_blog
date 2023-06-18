@@ -1,0 +1,15 @@
+---
+layout: ../../layouts/BlogPostLayout.astro
+title: '05-06-2020-Inkg-Dash'
+---
+import Link from '../../components/Link.astro';
+import Video from '../../components/Video.astro';
+export const components = { a: Link, Video };
+
+# Inky Dash
+[Inky Dash](https://github.com/End-S/inky_dash) is an interface for [Inky pHAT](https://shop.pimoroni.com/products/inky-phat?variant=12549254217811), an e-paper display for the Raspberry Pi, that can be accessed from a browser via a local web server. I wanted a fast and easy way to upload images to the e-paper display.
+
+The project is structured as a monorepo with the server and UI code bundled together. By treating the application as a whole it meant fewer steps were needed to deploy and run it.
+
+<Video src="/video/inky_dash.mp4" />
+<figcaption>Uploading an image</figcaption>

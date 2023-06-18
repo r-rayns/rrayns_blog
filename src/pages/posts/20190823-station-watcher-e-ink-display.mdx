@@ -1,0 +1,25 @@
+---
+layout: ../../layouts/BlogPostLayout.astro
+title: '23-08-2019-Station-Watcher-E-Ink-Display'
+---
+import Link from '../../components/Link.astro';
+export const components = { a: Link };
+
+# Station watcher e-ink display
+After introducing an elderly family member to the marine traffic website I had the idea for a display that overlays live ship locations onto a historic map. Unfortunately API's for marine traffic are not easily accessible unless you pay a fee. Looking for a free transport API I discovered National Rail's Darwin data feed, though I would rather it not have been a SOAP API I decided to use it to build a real-time display of train data.
+
+![Station Watcher empty station](/images/e-ink-empty.jpg "Station Watcher empty station")
+<figcaption>The e-ink displaying showing an empty station</figcaption>
+
+I wanted to continue with my original idea of overlaying real-time data onto a historic map. After finding an old map of a local station I brought a 2.13" Inky pHAT e-ink display and a raspberry pi zero. Setting up the Inky pHAT was pretty straight forward, I only encountered two minor stumbling blocks.
+
+The first was a bug in the python install script that erroneously reported two libraries as being unsuccessfully installed, this I found out was due to an error being thrown by an if condition that was meant to check the presence of the two libraries. I added a minor [fix](https://github.com/pimoroni/get/pull/201) for this and pushed it up to the git repo. The second was not realising that I had to enable the I2C bus in the raspi-config in order for the Pi it to talk to the display. This was just a matter of running `sudo raspi-config` selecting `Interfacing Options` then `I2C` and enable it.
+
+Now everything was working I needed to prepare the historic map image so it could be rendered on an e-ink display. The Inky pHAt can only handle three colours; white, black and yellow, so after cropping the image to the correct dimensions the colours had to be converted to black and white. With the image ready I created a python script that would watch for arrivals and departures at the station. 
+
+To retrieve the live data I used a python wrapper for the National Rail's API called nre-darwin-py, now I knew when a train arrived or departed at each platform and could complete my station watcher. When a train arrives at a platform the display updates with a yellow dot positioned above the platform on the map. When the train then departs the display updates again removing the dot. Additional information of the services time, departure location and destination is rendered at the top of the screen whilst that service is at the platform.
+
+![A train has arrived at the station](/images/e-ink-train.jpg "A train has arrived at the station")
+<figcaption>A train has arrived at the station</figcaption>
+
+I've put the python script on my [GitHub](https://github.com/End-S/station_epd_watcher/blob/master/history_train.py), it is hard coded to Emsworth station but with a little effort could easily be changed to another. The only restriction is screen size, it would be difficult to fit say, Clapham Junction on a small 2.13" display, but the makers of Inky pHAT now do a 4.2" equivalent called Inky wHAT. 

@@ -1,0 +1,38 @@
+---
+import Layout from "../layouts/Layout.astro";
+import PostLink from "../components/PostLink.astro";
+---
+
+<Layout title="blog">
+  <main>
+
+    <div class="flex flex-col gap-4">
+      <PostLink href="./posts/20220502-spooky-kingdom"
+        >Spooky Kingdom - a spooky news archive<span slot="date"
+          >02/05/2022</span
+        >
+      </PostLink>
+      <PostLink href="./posts/20210907-development-environment-2021"
+        >Development environment 2021<span slot="date">07/09/2021</span>
+      </PostLink>
+      <PostLink href="./posts/20201018-a-local-news-webcrawler"
+        >A local news webcrawler<span slot="date">18/10/2020</span>
+      </PostLink>
+      <PostLink href="./posts/20200605-inky-dash"
+        >Inky Dash - an interface for the Inky pHAT e-paper display<span
+          slot="date">05/06/2020</span
+        >
+      </PostLink>
+      <PostLink href="./posts/20200426-detecting-door-movements-with-a-smartphone"
+        >Detecting door movements with a smartphone<span slot="date"
+          >26/04/2020</span
+        >
+      </PostLink>
+      <PostLink href="./posts/20190823-station-watcher-e-ink-display"
+        >Station watcher e-ink display<span slot="date">23/08/2019</span>
+      </PostLink>
+    </div>
+  </main>
+</Layout>
+
+<style></style>

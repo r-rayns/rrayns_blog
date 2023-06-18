@@ -1,0 +1,41 @@
+---
+layout: ../../layouts/BlogPostLayout.astro
+title: '07-09-2021-Development-Environment-2021'
+---
+import Link from '../../components/Link.astro';
+export const components = { a: Link };
+
+# Development Environment 2021
+
+## Hardware
+<u>[Lenovo ThinkPad T450](https://www.bobble.tech/free-stuff/used-thinkpad-buyers-guide#h.p_xc4F0JHS01eo)</u><br/>
+Running the KDE flavour of Ubuntu, [Kubuntu](https://kubuntu.org/).
+
+## IDE/Editors
+<u>[Visual Studio Code](https://code.visualstudio.com/)</u><br/>
+Free, open-source ([kind of](https://vscodium.com/)), cross-platform and has support for every language I've come across.
+
+<u>[WebStorm](https://www.jetbrains.com/webstorm/)</u><br/>
+My preference when working on JavaScript/TypeScript projects. Though because JetBrains has dedicated IDEs for each language I fallback to Visual Studio Code when working outside the JavaScript ecosystem.
+
+<u>[Vim](https://www.vim.org/)</u><br/>
+Has had a positive effect on my productivity ever since I decided to go all in and use Vim as my default text editor as well as installing Vim mode in every IDE.
+
+## Terminal
+<u>[tmux](https://github.com/tmux/tmux)</u><br/>
+Often I find that I need more than one terminal open at once. tmux is great in that it allows me to have multiple terminals neatly arranged on a single screen. One essential plugin is [tmux resurrect](https://github.com/tmux-plugins/tmux-resurrect) which enables you to save and restore your tmux sessions.
+
+<u>[Zsh](https://www.zsh.org/)</u> & <u>[Oh My Zsh](https://ohmyz.sh/)</u><br/>
+The unix shell Zsh along with the Zsh config manager and plugin bundle, Oh My Zsh, provide the terminal with numerous quality of life improvements. Such improvements include; tab completion for commands, smarter command history navigation (start typing a command and press up) and display of the branch name next to the shell prompt when inside a Git directory.
+
+<u>[Yakuake](https://apps.kde.org/yakuake/)</u><br/>
+A KDE Quake style dropdown terminal, provides quick non-disruptive access to a terminal at the touch of a key.
+
+## Browser
+<u>[Firefox](https://www.mozilla.org/en-GB/firefox/new/)</u><br/>
+Open-source, fast, secure and wonderful to use. By far my favorite browser. Two useful Firefox addons are [uBlock Origin](https://ublockorigin.com/) for ad-blocking and [Wappalyzer](https://www.wappalyzer.com/) for checking out the tech stack of each site you visit.
+
+## Putting it all together
+To help me setup my environment I have an ever evolving [Ansible playbook](https://github.com/End-S/ansible-rrayns-setup). [Ansible](https://www.ansible.com/) is a tool that automates deployment and configuration of software. It often consists of a YAML file - called a playbook - that is composed of multiple tasks with each task representing a step such as cloning from a GitHub repository. Similar tasks can be grouped together to form a role. Roles are independent and reusable, they can be combined with other roles inside a playbook.
+
+I have split the tasks that setup my environment into 3 roles; non gui based software, gui based software and programming languages. Each role is associated with a tag. Each tag can be singled out. For example if I were working on a machine without a desktop environment I could run my playbook with the tag "non-gui" and only those programs without a GUI would be installed. 

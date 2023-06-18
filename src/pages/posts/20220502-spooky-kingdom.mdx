@@ -1,0 +1,65 @@
+---
+layout: ../../layouts/BlogPostLayout.astro
+title: '02-05-2022-Spooky-Kingdom'
+---
+import Link from '../../components/Link.astro';
+export const components = { a: Link };
+
+# Spooky Kingdom - a spooky news archive
+Having previously created a "spooky" news webcrawler I wanted to make the database of crawled paranormal articles accessible over the web so I built and deployed https://spookykingdom.co.uk. On the site you are able to browse articles and filter them by date, subject and publisher. As well as a convenient way to view the database Spooky Kingdom also features admin controls that allow me to review and edit each article.
+![Screenshot of the admin edit controls on spookykingdom.co.uk](/images/spookykingdom-edit.png "Admin controls")
+<figcaption>Spooky Kingdom admin controls for editing</figcaption>
+
+## Architecture
+The webcrawlers run within my local network on a Raspberry Pi 3. When a webcrawler discovers a spooky article a POST request is sent, detailing the discovery, to the Spooky Kingdom API using an API key to authenticate. Received articles are stored in a database and marked for review. An admin must review pending articles, deciding whether to approve or reject them, this final step filters out any false positives. Finally all approved articles are available in a paginated list for users to view and filter.
+
+![Spooky Kingdom architecture diagram](/images/spookykingdom-architecture.png "Spooky Kingdom architecture diagram")
+<figcaption>Spooky Kingdom architecture diagram</figcaption>
+
+## API
+I used the Echo web framework to structure my Go API, described as a <i>"High performance, extensible, minimalist Go web framework"</i><sup>[1](#notes)</sup>. Echo provided me with an initial structure which I built upon using the standard concepts of routes, controllers and models.
+
+Routes are defined by associating the route name with a controller method and optionally an authentication scheme - for service to service authentication this is an API key, for client authentication this is a JWT.
+
+Each controller is a collection of related methods, for example the article controller has methods for creating, updating and deleting articles. A typical controller method will first bind the incoming JSON, mapping it to a struct, if this produces no errors it will then validate the request using the validation method associated with the struct type, before finally returning a response to the client.
+
+My validation methods are simply a list of IF statements checking the properties of the request, returning nil on success and a detailed error on failure. Originally I was using struct tags for validation, struct tags are string literals that provide metadata on fields in a struct. Using string literals for validation is error-prone, simple typos and mistakes can easily go unnoticed, on top of this struct tags can quickly make struct definitions look cluttered, reducing readability.
+
+Once past validation the controller method will then invoke the related method on the model to perform any database actions; insertions, edits, retrievals etc... Finally any data retrieved from the database is returned as JSON to the client. 
+
+```go
+// StoreArticle function handles the storing of an article
+func (ac *ArticleController) StoreArticle(c echo.Context) error {
+    r := new(requests.StoreArticleReq)
+
+    // bind json to struct
+    if err := c.Bind(r); err != nil {
+        fmt.Println(err)
+        return err
+    }
+
+    // validate request
+    if err := c.Validate(r); err != nil {
+        return echo.NewHTTPError(http.StatusBadRequest, responses.ValidationError(err))
+    }
+
+    article, err := ac.articleModel.Store(r)
+
+    if err != nil {
+        return echo.NewHTTPError(http.StatusInternalServerError, responses.NewErrorResponse("Server error, unable to store article"))
+    }
+
+    return c.JSON(http.StatusOK, responses.NewArticleResponse(*article))
+}
+```
+<figcaption>Controller method for storing a new article</figcaption>
+
+## Deployment
+When compiled Go produces a single static binary file which make deployment simple. 
+The only challenge was to include the frontend build within this binary. 
+Fortunately this can be easily accomplished using the embed package (introduced in Go 1.16)<sup>[2](#notes)</sup>.
+
+## Notes
+1. Echo: https://echo.labstack.com/
+2. Golang embed files in binary (with React build example): https://www.akmittal.dev/posts/go-embed-files/
+

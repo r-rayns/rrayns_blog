@@ -1,0 +1,82 @@
+---
+import Layout from "./Layout.astro";
+
+const { frontmatter } = Astro.props;
+const { title } = frontmatter;
+---
+
+<Layout title={title}>
+  <div class="blog-post">
+    <slot />
+  </div>
+</Layout>
+
+<style lang="css" is:global>
+  :root {
+    /* coldark */
+      --astro-code-color-text: #111b27;
+    --astro-code-color-background: #E3EAF2;
+    --astro-code-token-constant: #005A8E;
+    --astro-code-token-string: #116B00;
+    --astro-code-token-comment: #3C526D;
+    --astro-code-token-keyword: #A04900;
+    --astro-code-token-parameter: #006d6d;
+    --astro-code-token-function: #7C00AA;
+    --astro-code-token-string-expression: #116B00;
+    --astro-code-token-punctuation: #111b27;
+    --astro-code-token-link: #755f00;
+  }
+    .dark { 
+      /* dracula */
+    --astro-code-color-text: #F8F8F2;
+    --astro-code-color-background: #282A36;
+    --astro-code-token-constant: #FF79C6;
+    --astro-code-token-string: #F1FA8C;
+    --astro-code-token-comment: #6272A4;
+    --astro-code-token-keyword: #BD93F9;
+    --astro-code-token-parameter: #FFB86C;
+    --astro-code-token-function: #50FA7B;
+    --astro-code-token-string-expression: #F1FA8C;
+    --astro-code-token-punctuation: #F8F8F2;
+    --astro-code-token-link: #8BE9FD;
+  }
+  .blog-post h1 {
+    @apply text-4xl mb-6 p-2 bg-cyan-300 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200 font-bold
+  }
+  .blog-post h2 {
+    @apply text-2xl mb-4
+  }
+  .blog-post h3 {
+    @apply text-xl mb-4 underline
+  }
+  .blog-post figcaption {
+    @apply text-sm text-slate-500 dark:text-slate-300 text-right -mt-4
+  }
+  .blog-post p {
+    @apply text-lg subpixel-antialiased leading-relaxed my-4
+  }
+  .blog-post p code {
+    @apply text-sm bg-slate-400 text-slate-100 dark:bg-slate-700 dark:text-slate-300 p-1 rounded-md
+  }
+  .blog-post img {
+    @apply p-2
+  }
+  .blog-post video {
+    @apply my-4
+  }
+  .blog-post a {
+    @apply text-cyan-600 dark:text-cyan-300 hover:text-cyan-400 dark:hover:text-cyan-500
+  }
+  .blog-post ol {
+    @apply list-decimal list-inside text-base break-words
+  }
+  .blog-post ul {
+    @apply list-disc text-lg leading-relaxed ml-8
+  }
+  .blog-post sup {
+    @apply text-sm font-bold
+  }
+  .blog-post .astro-code {
+    @apply text-sm my-4 p-2
+  }
+</style>

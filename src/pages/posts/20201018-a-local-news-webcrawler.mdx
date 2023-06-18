@@ -1,0 +1,248 @@
+---
+layout: ../../layouts/BlogPostLayout.astro
+title: '18-10-2020-A-Local-News-Webcrawler'
+---
+import Link from '../../components/Link.astro';
+export const components = { a: Link };
+
+# A local news webcrawler
+
+I've always maintained an interest in the paranormal. As a child I would creep myself out reading the Usbourne book of Ghosts and flicking through my friends dad's encyclopedia of the unexplained. Nowadays I get my paranormal hit as a subscriber to the Fortean Times. Though I remain a sceptic I enjoy suspending my disbelief and pondering on the odd and seemingly unexplained.
+
+Local news can be a good and entertaining source for spooky stories. Often each county or region in the UK has their own local news website. I wanted to find these stories and store links to them in a database. This would be pretty boring and laborious to do by hand, so I decided to create a webcrawler.
+
+I had the following goals in mind:
+
+- Crawl the sitemaps of local news websites whilst respecting Robots.txt
+- Crawl multiple sites at once
+- Detect if an article's content relates to the paranormal
+- Store links to articles of interest in a database
+- Once crawling of the site is complete, continue to monitor the sitemaps for additions
+
+## Scrapy
+[Scrapy](https://scrapy.org/) is a well established web crawler framework for Python. It comes with a [sitemap spider](https://docs.scrapy.org/en/latest/topics/spiders.html#sitemapspider) out of the box which I extended to create my own spider: "SpookySpider".
+
+By extending Scrapy's SitemapSpider my SpookySpider class inherited some useful behaviour. The prime benefit was the ability to navigate sitemaps and follow links to articles, the contents of which could be forwarded to a parser function and classified.
+
+The SitemapSpider could also be configured to filter certain links based on the lastmod date or URL. Filtering by lastmod date proved useful in watching for recent additions to the sitemap and URL filtering meant only links with "/news/" in their path were followed thus avoiding sport news which commonly has it's own path.
+
+## A Spider's Journey
+Each spider starts life as child class of the SpookySpider. A spider is given a name, the url of where it's crawl will begin and it's own logger instance. Also defined is the job directory, this is used by Scrapy to save the spiders progress. Should the service require restarting Scrapy can resume the spider where it left off. 
+
+```python
+class SpookyLiverpool(SpookySpider):
+  name = "spooky_liverpool"
+  job_dir = 'crawls/liverpool'
+  custom_settings = {'JOBDIR': job_dir}
+  sitemap_urls = ['https://www.liverpoolecho.co.uk/robots.txt']
+  logger = create_logger('spider.liverpool', job_dir, 'liverpool.log')
+
+class SpookyManchester(SpookySpider):
+  name = "spooky_manchester"
+  job_dir = 'crawls/manchester'
+  custom_settings = {'JOBDIR': job_dir}
+  sitemap_urls = ['https://www.manchestereveningnews.co.uk/robots.txt']
+  logger = create_logger('spider.manchester', job_dir, 'manchester.log')
+```
+<figcaption>The classes defining the spiders for the Liverpool Echo and the Manchester Evening News</figcaption>
+
+Having spiders track additions to the sitemap after their initial crawl ends was more difficult. Scrapy does not provide an obvious method of achieving this. Help came from a [blog post](https://web.archive.org/web/20200718190932/http://crawl.blog/scrapy-loop.html) I found that explained a way of looping web crawlers; <i>"since scrapy is using Twisted for crawl loop you can extend the same loop with your on[sic] callbacks"</i>.<sup>[1](#notes)</sup> 
+
+[Twisted](https://twistedmatrix.com/trac/) is an event-driven framework for Python structured around asynchronous/callback-based programming and it was Twisted's [deferred](https://twistedmatrix.com/documents/16.2.0/core/howto/defer.html) object that proved useful in looping the spiders.
+
+The core logic of the loop can be seen in the _crawl function (below). Scrapy's crawl process returns a deferred object that is triggered when a spider finishes it's crawl.<sup>[2](#notes)</sup> We add two callbacks to this deferred object; the first waits for a 24 hour period and then the second restarts the crawling process with a recursive function call. 
+
+So now we have a spider that will perform a full crawl of the targets sitemap, wait 24 hours and crawl again. Only, on subsequent crawls, we pass a date threshold which filters articles from the sitemap based on the last mod date. This means spiders can skip articles they have already parsed and just focus on sitemap additions made since their last crawl. The loops continues until the Python process is stopped.
+
+```python
+process = CrawlerProcess(get_project_settings())
+
+def _crawl(result, spider, parser, logger, date_threshold=None):
+  logger.info('🕷 Begin crawl for: {}, using date_threshold: {}'.format(
+    spider.name, date_threshold))
+  deferred = process.crawl(spider, parser, date_threshold, logger)
+
+  # take current date
+  # this will be used to check against last mod date on the next crawl
+  crawl_start_date = datetime.utcnow()
+  date_threshold = pytz.utc.localize(crawl_start_date)
+
+  deferred.addCallback(sleep, seconds=86400, logger=logger)
+  deferred.addCallback(_crawl, spider, parser, logger, date_threshold)
+
+  return deferred
+
+_crawl(None, SpookyLiverpool, ArticleParser(
+  'Liverpool Echo', SpookyLiverpool.logger).parse_article, SpookyLiverpool.logger)
+
+_crawl(None, SpookyManchester, ArticleParser(
+  'Manchester Evening News', SpookyManchester.logger).parse_article
+  , SpookyManchester.logger)
+```
+<figcaption>The recursive _crawl function that is core to the looping of spiders</figcaption>
+
+## The Parser
+Every spider has it's own instance of the ArticleParser class. The ArticleParser class contains a parser function that takes a scraped article as an argument. This function extracts the articles body then attempts to classify it as either ghost, ufo or weird. If a classification is made additional data is extracted such as the article's date, title and description, then the article is saved to the database.
+
+```python
+
+def parse_article(self, doc):
+
+  ...
+
+  article_body = self.extractor.extract(
+    doc, dom.article_body_selectors, 'articleBody')
+
+  # attempt to class article
+  classification = self.classifier.classify_article(article_body)
+
+  ...
+
+  extractedData = {
+    'publisher_id': None,
+    'publisher': self.format_publisher_name(self.extractor.extract(
+      doc, dom.publisher_selectors, 'publisher', 'name')),
+    'date_published': pub_date,
+    'date_retrieved': datetime.utcnow().isoformat(),
+    'title': self.extractor.extract(doc, dom.title_selectors, 'headline'),
+    'description': self.extractor.extract(doc, dom.description_selectors,
+      'description'),
+    'link': doc.url,
+    'article_type': classification
+  }
+
+  ...
+
+  self.store_article(extractedData)
+  return
+```
+<figcaption>The parse function</figcaption>
+
+## Extraction
+Extraction is attempted individually for each property we wish to scrape, e.g. body, title, date etc... 
+
+Fortunately most local news sites have a similar DOM structure so extraction methods can be cross purpose. Extracting data from JSON-LD<sup>[3](#notes)</sup> is attempted first if this fails an array of xpath/css selectors are tried. If one selector fails the next one is applied and so on until no selectors remain or a selector was successful in extracting data. With this method if a publication uses a different DOM structure to those previously encountered, new selectors to handle the structure can be appended to the selector arrays. 
+
+```python
+
+...
+
+title_selectors = (
+  lambda doc: doc.xpath('//meta[contains(@name, "title")]/@content').get(),
+  lambda doc: doc.css('title::text').get(),
+)
+
+description_selectors = (
+  lambda doc: doc.xpath(
+    '//meta[contains(@name, "description")]/@content').get(),
+)
+
+...
+
+def extract(self, document, selectors, *json_property):
+  # see if the document has any json linked data
+  json_linked_data = document.xpath(
+    '//script[@type="application/ld+json"]//text()').getall()
+
+  if json_linked_data:
+    # try to extract json property, fallback to selector if not
+    return self._processJson(json_linked_data, *json_property)
+      or self._try_selectors(document, selectors)
+    else:
+      return self._try_selectors(document, selectors)
+            
+```
+<figcaption>Extract function with two examples of the selector arrays</figcaption>
+
+## Classification
+Classification of articles is done using a primitive string match on the articles content. The goal is to class a story as either "ghost", "ufo" or "weird" and discard anything that does not fit these categories. 
+
+To achieve this a weighting system is used where different words and phrases have associated scores. When an article scores above two in any of the three categories it's classed with the category it scored highest in and saved. Over time the scores can be tweaked to improve article classification.
+
+```python
+...
+
+_common_weights = {
+  'paranormal': 1,
+  'supernatural': 1,
+  'natural': -1,
+  'solved': -2,
+  'film': -2,
+  'films': -2,
+  'movie': -2,
+  'movies': -2,
+  'musical': -2,
+  ...
+}
+
+ghost_weighting = Weighting({
+  'ghost town': -4,
+  'ghost shark': -4,
+  'white as a ghost': 0,
+  'apparition': 2,
+  'haunted': 1,
+  'ghosts': 1,
+  'ghost': 0.5,
+  'manifestations': 0.5,
+  'manifestation': 0.5,
+  'spirt': 0.5,
+  'haunt': 0.5,
+  ...
+  **_common_weights},
+  ArticleClass.GHOST.value)
+}
+
+ufo_weighting = Weighting({
+  'flying saucer': 1,
+  'flying saucers': 1,
+  'ufo': 1,
+  'ufos': 1,
+  'cloud': -1
+  ...
+
+weird_weighting = Weighting({
+  'cryptid': 2,
+  'cryptozoology': 1,
+  'mystery creature': 1,
+  'mystery beast': 1,
+  'big cat': 0.5,
+  ...
+
+...
+
+def classify_article(self, article):
+  if not article:
+    return None
+
+  article_class = None
+  highest_score = 0
+  scores = []
+
+  for weighting in self.weightings:
+    self.logger.info('Getting score using {} weightings'
+      .format(weighting.classification))
+    score = self._score_article(article, weighting.weights)
+    scores.append((weighting.classification, score))
+
+  self.logger.info('Article scores {}'.format(scores))
+
+  # set article type to the highest scoring article
+  for (score_class, score) in scores:
+    if score >= 2 and score > highest_score:
+      article_class = score_class
+      highest_score = score
+
+  return article_class
+```
+<figcaption>The classification function and example weightings</figcaption>
+
+## Results
+I have had the spiders running continuously for a few weeks on a Raspberry Pi and so far have scraped 311 articles. The majority of articles have been correctly classified. However there are some false positives. For these I look at the article and tweak the weighting system to avoid saving similar stories in the future. One such example is the word "ghost" appearing in the context of "ghost shark". To avoid this I now explicitly give "ghost shark" a negative score.
+### Improvements
+As mentioned the classification method is simplistic. This could be improved upon with a less arbitrary scoring system and changing word scores based on the presence of other words. For example scoring the word "haunted" higher when the word "ghost" has previously been matched. Or, relating to the previous paragraph, scoring the word "ghost" lower when words such as "shark", "fish" or "fishing" have been matched".
+
+## Notes
+1. Scrapy: How to loop a crawler: https://web.archive.org/web/20200718190932/http://crawl.blog/scrapy-loop.html
+2. crawler.py: https://github.com/scrapy/scrapy/blob/75f35f558f5a9e0851c05dda85763b679d713ac1/scrapy/crawler.py#L176
+3. JSON-LD: https://json-ld.org/
+
