@@ -8,4 +8,4 @@ const { href } = Astro.props;
 const active: boolean = href === Astro.url.pathname;
 ---
 
-<a href={href} class:list={["dark:text-cyan-400 text-cyan-800", { "text-decoration-line: underline": !active }]}><slot /></a>
+<a href={href} data-tag="navLink" class="dark:text-cyan-400 text-cyan-800"><slot /></a>

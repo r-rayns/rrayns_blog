@@ -37,11 +37,27 @@ const _title = frontmatter?.title ?? title;
       <nav aria-label="primary-navigation" class="mt-auto font-mono">
         <span>
           <NavLink href="/">Blog</NavLink> /
-          <NavLink href="/links">Links</NavLink> /
-          <NavLink href="/contact">Contact</NavLink>
+          <NavLink href="/links" data-tag="navLink">Links</NavLink> /
+          <NavLink href="/contact"data-tag="navLink" >Contact</NavLink>
         </span>
       </nav>
     </header>
     <slot />
   </body>
 </html>
+
+<script>
+  const navLinks = document.querySelectorAll('[data-tag="navLink"]');
+  navLinks.forEach(link => {
+    const currentPath = window.location.pathname;
+    const href = link.getAttribute('href');
+    if(currentPath === href ||
+      // underline "Blog" navLink when viewing a blog post
+      (href === '/' && currentPath.startsWith('/posts'))) {
+      link.classList.add('underline');
+    } else {
+      link.classList.remove('underline');
+    }
+
+  })
+</script>
