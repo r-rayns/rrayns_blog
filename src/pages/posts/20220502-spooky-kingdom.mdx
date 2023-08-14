@@ -3,15 +3,16 @@ layout: ../../layouts/BlogPostLayout.astro
 title: '02-05-2022-Spooky-Kingdom'
 ---
 import Link from '../../components/Link.astro';
+import IconButton from '../../components/IconButton.astro';
 export const components = { a: Link };
 
 # Spooky Kingdom - a spooky news archive
-Having previously created a "spooky" news webcrawler I wanted to make the database of crawled paranormal articles accessible over the web so I built and deployed https://spookykingdom.co.uk. On the site you are able to browse articles and filter them by date, subject and publisher. As well as a convenient way to view the database Spooky Kingdom also features admin controls that allow me to review and edit each article.
+Having previously created a "spooky" news webcrawler I wanted to make the database of crawled paranormal articles accessible over the web, so I built and deployed https://spookykingdom.co.uk. On the site you are able to browse articles and filter them by date, subject and publisher. As well as a convenient way to view the database Spooky Kingdom also features admin controls that allow me to review and edit each article.
 ![Screenshot of the admin edit controls on spookykingdom.co.uk](/images/spookykingdom-edit.png "Admin controls")
 <figcaption>Spooky Kingdom admin controls for editing</figcaption>
 
 ## Architecture
-The webcrawlers run within my local network on a Raspberry Pi 3. When a webcrawler discovers a spooky article a POST request is sent, detailing the discovery, to the Spooky Kingdom API using an API key to authenticate. Received articles are stored in a database and marked for review. An admin must review pending articles, deciding whether to approve or reject them, this final step filters out any false positives. Finally all approved articles are available in a paginated list for users to view and filter.
+The webcrawlers run within my local network on a Raspberry Pi 3. When a webcrawler discovers a spooky article a POST request is sent, detailing the discovery, to the Spooky Kingdom API using an API key to authenticate. Received articles are stored in a database and marked for review. An admin must review pending articles, deciding whether to approve or reject them, this final step filters out any false positives. Finally, all approved articles are available in a paginated list for users to view and filter.
 
 ![Spooky Kingdom architecture diagram](/images/spookykingdom-architecture.png "Spooky Kingdom architecture diagram")
 <figcaption>Spooky Kingdom architecture diagram</figcaption>
@@ -25,7 +26,7 @@ Each controller is a collection of related methods, for example the article cont
 
 My validation methods are simply a list of IF statements checking the properties of the request, returning nil on success and a detailed error on failure. Originally I was using struct tags for validation, struct tags are string literals that provide metadata on fields in a struct. Using string literals for validation is error-prone, simple typos and mistakes can easily go unnoticed, on top of this struct tags can quickly make struct definitions look cluttered, reducing readability.
 
-Once past validation the controller method will then invoke the related method on the model to perform any database actions; insertions, edits, retrievals etc... Finally any data retrieved from the database is returned as JSON to the client. 
+Once past validation the controller method will then invoke the related method on the model to perform any database actions; insertions, edits, retrievals etc... Any data retrieved from the database is returned as JSON to the client.
 
 ```go
 // StoreArticle function handles the storing of an article
@@ -55,9 +56,20 @@ func (ac *ArticleController) StoreArticle(c echo.Context) error {
 <figcaption>Controller method for storing a new article</figcaption>
 
 ## Deployment
-When compiled Go produces a single static binary file which make deployment simple. 
-The only challenge was to include the frontend build within this binary. 
+When compiled Go produces a single static binary file which make deployment simple.
+The only challenge was to include the frontend build within this binary.
 Fortunately this can be easily accomplished using the embed package (introduced in Go 1.16)<sup>[2](#notes)</sup>.
+
+## ✨ Update (01/08/2023) - Redesign
+I have now transitioned from Vue 2 to Vue 3, rewriting most of the front-end and giving it a redesign in the process. As part of this transition, I have also started utilising Tailwind CSS.
+
+I have found Tailwind to be beneficial. Styling is quick and efficient, all done within the template. It offers straightforward responsive design capabilities with the use of prefixes like `sm:`, `lg:` and so on.
+
+However, the HTML can get cluttered quickly with Tailwind utility classes, but I am taking this as a sign to segment some parts of my markup into distinct components.
+![Screenshot of the admin edit controls on spookykingdom.co.uk](/images/spookykingdom-redesign.png "New design")
+<figcaption>Spooky Kingdom, redesigned and using Vue 3!</figcaption>
+
+<IconButton class="my-4" icon="github" url="https://github.com/r-rayns/spooky_kingdom">View on GitHub</IconButton>
 
 ## Notes
 1. Echo: https://echo.labstack.com/

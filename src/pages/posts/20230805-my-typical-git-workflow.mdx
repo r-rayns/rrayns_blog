@@ -1,0 +1,93 @@
+---
+layout: ../../layouts/BlogPostLayout.astro
+title: '05-08-2023-My-Typical-GIT-workflow'
+---
+import Link from '../../components/Link.astro';
+export const components = {a: Link};
+
+# My Typical Git workflow
+
+Overtime I have slowly settled on a Git workflow that I feel helps me to produce and write meaningful detailed commit messages. These are the practices and commands that, so far, I have found helpful.
+
+## Using the native Git CLI
+Learning and using the Git Command Line Interface (CLI) is a good skill to have. The CLI is always available on any machine you may use, whereas your favourite Git tool may not be. Despite a steeper learning curve compared to a GUI, the CLI can offer increased granular control over the version control processes.
+
+Additionally, I find using the Git CLI reduces the chance of "messing" something up. While GUIs can simplify some tasks, they also abstract away many details of the underlying processes. This abstraction can sometimes lead to mistakes, especially when powerful commands are invoked without full understanding of their implications. In contrast, the CLI requires explicit input, which can help in understanding the full context of the operations being performed and reduce the likelihood of errors.
+
+## Branching Strategy
+My Git workflow starts from creating a new branch from the `next` branch - or `release` branch, whatever you may call it - for each major feature, bug fix, or update I do. Once the work is complete, I create a pull request to merge these changes back into the parent branch. When working on a new major feature I find its common for me to fix, refactor or introduce code not linked to but related to the feature I'm developing. As a result each branch I work on will end up containing multiple commits and for each of these commits it is important, for the sake of a detailed commit history, to accurately document the purpose and reasoning of the changes that have been made.
+
+## Consolidating interim commits
+As I work I frequently make interim commits, or what I refer to as "junk" commits, and push them to the remote repository as a form of backup. I often find that because I’m mid-way through development I can’t yet create meaningful complete commit messages. Instead, the commits that I do make at this time often carry non-descriptive messages, such a date and short summary e.g. `git commit -m 'WIP(20230701) feature X'`.
+
+After I've completed the necessary work on my branch, I consolidate all these interim commits into a single commit. This is achieved through an interactive rebase, specifically using the `fixup` command.
+
+I first use `git log` to retrieve the hash of the first commit I made. Then, I initiate an interactive rebase on my branch with the command `git rebase -i my-branch <commit-hash>~1`.
+
+During an interactive rebase, commits are listed in reverse chronological order. Here, I pick the first commit and choose to `fixup` the subsequent ones. This process effectively merges all my junk commits into one.
+
+```bash
+pick 818eaaa WIP(20230701) feature X initial work
+fixup 812eid8 WIP(20230703) feature X additional work and bugfix
+fixup 927jr22 WIP(20230704) feature X complete
+
+# Commands:
+# p, pick <commit> = use commit
+# ...
+# s, squash <commit> = use commit, but meld into previous commit
+# f, fixup [-C | -c] <commit> = like "squash" but keep only the previous
+#                    commit's log message, unless -C is used, in which case
+#                    keep only this commit's message; -c is same as -C but
+#                    opens the editor
+# ...
+#
+```
+
+## Creating detailed commits
+The next step is to dissect the singular monolithic commit to create detailed commits for each note-worthy change that I've implemented. To do this, undo the singular commit, un-staging all the changes made:
+
+```bash
+git reset HEAD~
+```
+
+All the changes that made up the commit will now be un-staged. This results in a clean slate to work from. Now I can separate out, into commits, those bug fixes or refactors that I've made whilst implementing my feature. To produce a list of distinct commits that I need to make, I open a text editor and cycle through - without staging - all the changes I’ve made. To iterate over the changes I use the `git add` command with the `-p` patch flag.
+
+```bash
+git add -p
+```
+
+As I review each change, I note down major themes that warrant their own individual commit. For instance, I may have corrected some spelling errors in several error responses, for this I would note down a suitable commit message “fix: spelling in error responses,”. Or perhaps I added a new utility function with potential for wider use, in which case I would note down a commit message “feat: add log utility function”. During this first pass at no point do I actually stage any code, responding with `n` (no) to each prompt from Git.
+
+## Staging and Committing Changes
+Once I've composed all my commit messages, I choose the best one to begin with and run the `git add -p` command again, staging all the changes that are relevant to the commit. For example, staging all spelling corrections under the “fix: spelling in error responses” commit. Any unrelated changes are skipped. With all relevant changes now staged, I increment the version number (in line with semver) and commit:
+
+```bash
+git commit
+```
+
+```
+fix: spelling in error responses
+
+Fixed numerous spelling mistakes found in error responses sent by endpoints
+
+# Please enter the commit message for your changes. Lines starting
+# with '#' will be ignored, and an empty message aborts the commit.
+#`
+```
+
+By convention, I write the commit message headers in an imperative tone, as if giving a command or instruction. I tend to drop this tone for the commit body. I also start the message header with the commit type, similar to the [Angular commit convention](https://github.com/angular/angular/blob/main/CONTRIBUTING.md#commit-message-header), with examples including fix, feat, build, refactor, and test.
+
+Once all changes have been staged and committed, I end up with a series of meaningful commit messages:
+
+```
+feat: add endpoints for report management api
+feat: add log utility function
+fix: spelling in comments`
+```
+I then push these changes to the origin and open a pull request.
+
+## Reflections
+
+This has been my working method for little over a year now and I continue to looks for ways in which I can refine it. I sometimes encounter difficulty in segregating bug fixes from the main feature implementation in my code changes. In such cases, I tend to include the bug fix within the main feature commit and make a note of it in the commit message.
+
+To avoid this I should use branches more effectively when I come across a bug, that is unrelated to my feature. Instead of fixing the bug in my feature branch, I should branch off and apply the fix in a separate branch before returning to my feature.

@@ -3,11 +3,13 @@ layout: ../../layouts/BlogPostLayout.astro
 title: '18-10-2020-A-Local-News-Webcrawler'
 ---
 import Link from '../../components/Link.astro';
+import IconButton from '../../components/IconButton.astro';
 export const components = { a: Link };
 
 # A local news webcrawler
 
 I've always maintained an interest in the paranormal. As a child I would creep myself out reading the Usbourne book of Ghosts and flicking through my friends dad's encyclopedia of the unexplained. Nowadays I get my paranormal hit as a subscriber to the Fortean Times. Though I remain a sceptic I enjoy suspending my disbelief and pondering on the odd and seemingly unexplained.
+
 
 Local news can be a good and entertaining source for spooky stories. Often each county or region in the UK has their own local news website. I wanted to find these stories and store links to them in a database. This would be pretty boring and laborious to do by hand, so I decided to create a webcrawler.
 
@@ -241,8 +243,9 @@ I have had the spiders running continuously for a few weeks on a Raspberry Pi an
 ### Improvements
 As mentioned the classification method is simplistic. This could be improved upon with a less arbitrary scoring system and changing word scores based on the presence of other words. For example scoring the word "haunted" higher when the word "ghost" has previously been matched. Or, relating to the previous paragraph, scoring the word "ghost" lower when words such as "shark", "fish" or "fishing" have been matched".
 
+<IconButton class="my-4" icon="github" url="https://github.com/r-rayns/spooky_crawler">View on GitHub</IconButton>
+
 ## Notes
 1. Scrapy: How to loop a crawler: https://web.archive.org/web/20200718190932/http://crawl.blog/scrapy-loop.html
 2. crawler.py: https://github.com/scrapy/scrapy/blob/75f35f558f5a9e0851c05dda85763b679d713ac1/scrapy/crawler.py#L176
 3. JSON-LD: https://json-ld.org/
-
