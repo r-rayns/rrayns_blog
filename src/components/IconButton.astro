@@ -1,0 +1,35 @@
+---
+import Icon from "./Icon.astro";
+export interface Props {
+    icon: string;
+    url?: string;
+    class?: string;
+}
+
+let {class: className, icon, url} = Astro.props as Props;
+className = `${className} flex items-center bg-slate-300 hover:bg-slate-400 dark:bg-slate-700 dark:hover:bg-slate-600 text-black dark:text-white font-bold text-sm py-2 px-3 rounded`;
+---
+<icon-button data-url={url}>
+    <button class={className}>
+        <slot/>
+        <Icon class="inline-block w-5 h-5 ml-2 dark:fill-white" icon={icon}></Icon>
+    </button>
+</icon-button>
+
+
+<script>
+    class IconButton extends HTMLElement {
+        constructor() {
+            super();
+
+            // Read the url from the data attribute.
+            const url = this.dataset.url;
+            const button = this.querySelector('button');
+            button.addEventListener('click', () => {
+                window.open(url, '_blank');
+            });
+        }
+    }
+
+    customElements.define('icon-button', IconButton);
+</script>
