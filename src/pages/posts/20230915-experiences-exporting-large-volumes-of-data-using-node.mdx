@@ -1,0 +1,101 @@
+---
+layout: ../../layouts/BlogPostLayout.astro
+title: '15-09-2023-Experiences-Exporting-Large-Volumes-Of-Data-Using-Node.js'
+---
+import Link from '../../components/Link.astro';
+import IconButton from '../../components/IconButton.astro';
+export const components = { a: Link };
+
+# Experiences exporting large volumes of data using Node.js
+
+When dealing with substantial amounts of data, exporting hundreds of thousands of entries is time-consuming. It is not something a user can request and expect to have sent back to them within a request response cycle. The browser would time out long before the task could be completed.
+
+Typically, in this scenario, the user defines the data they wish to export within a time range. The actual task is then carried out asynchronously with the user being notified, perhaps by email, once the task has completed.
+
+I recently had to design and build an asynchronous export solution using Node.js. The initial flow I came up with was something like this:
+
+1) A user requests a data export. Specifying the entities they want data exported for and the time range that it should cover. The time range could be any period from hours, days, weeks, months or even years.
+2) When an export request is submitted, the user receives confirmation that the task is being processed. They are informed that they will be notified via email once the task is completed.
+3) A dedicated service handles the exportation process. It makes requests to the database, and gathers the data for export.
+4) Once all the data is gathered it is formatted and written in the specified format. In my case, this was as a CSV file.
+5) The export task is marked as completed, and the user is notified. They are provided with a download link for their exported data.
+
+## Problem
+
+It was in steps 3 and 4, the retrieval of data and writing of data to the CSV file, where my service encountered memory issues. Smaller jobs ran fine but larger ones caused the process to crash.
+
+While a quick fix would have been to increase the server memory, I realised this was only a temporary fix. To address the problem at its root I needed to optimise the memory usage of my service.
+
+## Debugging
+
+The first step I took was to log the JavaScript memory usage that occurs during export tasks. Using `process.memoryUsage()`<sup>[1](#notes)</sup> I printed to the terminal the following metrics; "Resident Set Size", "Heap Total" and "Heap Used".
+
+- **Resident Set Size** - the total memory allocated for the process execution, encompasses the heap memory
+- **Heap** - the memory segment for storing objects, strings and closures
+- **Heap Total** - overall size of the allocated heap
+- **Heap Used** - actual heap memory in use during the execution of the process
+
+As expected, I observed a steady increase in the heap size as the export progressed:
+
+```bash
+Resident Set Size (rss): 348.59MB
+Heap Total: 193.08MB
+Heap Used: 162.07MB
+--
+Resident Set Size (rss): 398.59MB
+Heap Total: 213.08MB
+Heap Used: 182.07MB
+--
+Resident Set Size (rss): 448.59MB
+Heap Total: 233.08MB
+Heap Used: 202.07MB
+--
+Resident Set Size (rss): 498.59MB
+Heap Total: 253.08MB
+Heap Used: 222.07MB
+
+Resident Set Size (rss): 548.59MB
+Heap Total: 273.08MB
+Heap Used: 242.07MB
+```
+
+## Solution
+
+As the data export process continued, the program's memory requirements kept growing. Only when the CSV file was written to disk, did the memory usage drop again. This was caused by two factors:
+- Data retrieved from the database is held as an object until the creation of the CSV file is complete
+- While the CSV file is being written, its contents are also stored as an object in memory.
+
+To address this issue and prevent large objects from consuming the application's memory, I made the following changes:
+
+**Data Retrieval**: Instead of retrieving all the data at once, I switched to fetching it in smaller, manageable chunks, with each chunk being written to CSV before the next chunk is retrieved. This approach ensures that the object holding the data maintains a stable memory footprint because each new chunk overwrites the previous one.
+
+**Writing to CSV**: To resolve the problem of having to store the entire CSV file in memory while writing it, I implemented a write stream from Node's file system module<sup>[2](#notes)</sup>. A write stream buffers and writes data to a file in smaller, more manageable pieces. By writing data incrementally, it eliminates the need to hold the entire contents of the CSV file in memory at once. This change allows files of any size to be written to disk without running into memory limitations.
+
+After making these changes and running an export job again the memory usage remained stable looking a little like this:
+
+```bash
+Resident Set Size (rss): 206.77MB
+Heap Total: 189.8MB
+Heap Used: 175.37MB
+
+Resident Set Size (rss): 222.06MB
+Heap Total: 204.74MB
+Heap Used: 187.29MB
+
+Resident Set Size (rss): 198.61MB
+Heap Total: 180.16MB
+Heap Used: 148.66MB
+
+Resident Set Size (rss): 213.86MB
+Heap Total: 193.8MB
+Heap Used: 176.88MB
+
+Resident Set Size (rss): 209.27MB
+Heap Total: 187.37MB
+Heap Used: 156.44MB
+```
+With these changes in place it is possible to run jobs of any size. The memory usage between a small job and a large job remains the same. The only difference is in the time each one takes, but for an asynchronous task like this, time is not a problem.
+
+## Notes
+1. process.memoryUsage(): https://nodejs.org/api/process.html#processmemoryusage
+2. Write Steam: https://nodejs.org/api/fs.html#filehandlecreatewritestreamoptions
