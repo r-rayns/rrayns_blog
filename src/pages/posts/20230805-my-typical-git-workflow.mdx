@@ -22,7 +22,7 @@ As I work I frequently make interim commits, or what I refer to as "junk" commit
 
 After I've completed the necessary work on my branch, I consolidate all these interim commits into a single commit. This is achieved through an interactive rebase, specifically using the `fixup` command.
 
-I first use `git log` to retrieve the hash of the first commit I made. Then, I initiate an interactive rebase on my branch with the command `git rebase -i my-branch <commit-hash>~1`.
+I first use `git log` to retrieve the hash of the first commit I made. Then, I initiate an interactive rebase on my branch with the command `git rebase -i <commit-hash>~1`.
 
 During an interactive rebase, commits are listed in reverse chronological order. Here, I pick the first commit and choose to `fixup` the subsequent ones. This process effectively merges all my junk commits into one.
 
