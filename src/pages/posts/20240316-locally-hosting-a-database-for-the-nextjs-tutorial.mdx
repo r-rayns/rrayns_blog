@@ -1,0 +1,312 @@
+---
+layout: ../../layouts/BlogPostLayout.astro
+title: '16-03-2024-Locally-Hosting-A-Database-For-The-Next.js-Tutorial'
+---
+import Link from '../../components/Link.astro';
+export const components = { a: Link };
+
+# Locally hosting a database for the Next.js tutorial
+
+When recently working my way through the Next.js tutorial I came to "Chapter 6: Setting Up Your Database"<sup>[1](#notes)</sup>. 
+The chapter guides you through creating a Vercel account and setting up a PostgreSQL database in the Vercel cloud. I didn't fancy doing this,
+instead I wanted to run a PostgreSQL database locally inside a Docker container...
+
+## Prerequisites
+
+- Reached chapter six of the Next.js tutorial<sup>[1](#notes)</sup>
+- Docker CLI setup and installed on your system<sup>[2](#notes)</sup>
+
+## Creating a PostgreSQL container
+
+1) Create a new file called "docker-compose.yml" at the root of your Next.js tutorial project directory:
+
+```bash
+> cd nextjs-dashboard
+> touch docker-compose.yml
+```
+
+2) Copy the following into your "docker-compose.yml" file and set values for the `POSTGRES_USER` and `POSTGRES_PASSWORD` environment variables.
+This compose file will create a Docker container running PostgreSQL.
+
+```yaml
+# https://docs.docker.com/compose/compose-file/compose-file-v3/
+version: '3.8'
+services:
+  postgres:
+    image: "postgres:latest"
+    environment:
+      POSTGRES_USER: "" # <-- enter a user name for postgres
+      POSTGRES_PASSWORD: "" # <-- enter a password for postgres
+      POSTGRES_DB: "nextjstutorial"
+    ports:
+      # Map port 5432 of the container to port 5432 on the host machine
+      - "5432:5432"
+```
+
+3) From the root of your project execute the following in the terminal, to start the Docker container:
+
+```bash
+> sudo docker compose up -d
+```
+<figcaption>The *-d* flag runs the container in the background</figcaption>
+
+If you now check, you should see the container is running:
+
+```bash
+> sudo docker container ls -a
+
+CONTAINER ID   IMAGE             COMMAND                  CREATED       STATUS          PORTS                                       NAMES
+f652b578efd0   postgres:latest   "docker-entrypoint.s…"   2 days ago    Up 51 seconds   0.0.0.0:5432->5432/tcp, :::5432->5432/tcp   nextjs-dashboard-postgres-1
+```
+
+## Seeding the database
+In the Next.js tutorial you need to seed the database, populating it with the fake data. 
+
+Now if we were to setup the .env file and run `npm run seed` it would fail with an "ECONNREFUSED" on port **443** error message.
+This is because the vercel/postgres package is designed to run with a [Neon PostgreSQL database](https://github.com/neondatabase/neon)
+which communicates using WebSockets on the HTTPS port **443**.
+
+We need to swap the vercel/postgres package for a package that can communicate with our database over the standard PostgreSQL port of **5432**.
+
+4) A popular PostgreSQL client for Node.js is the node-postgres (pg) package. Install it via npm:
+
+```bash
+> npm i pg
+```
+
+### Setting up the .env file
+The pg package requires a different .env configuration than the one provided in the tutorial.
+
+5) If you haven't already, rename the `.env.example` file to `.env` and set it to the below. Fill in the username and password you created
+when setting up the database.
+
+```yaml
+PGUSER= #POSTGRES_USER
+PGHOST=localhost
+PGPASSWORD= #POSTGRES_PASSWORD
+PGDATABASE=nextjstutorial
+PGPORT=5432
+
+# `openssl rand -base64 32`
+AUTH_SECRET=AFmE3CXmVQkZQCEqfnLCyvmpf4KRWEru
+AUTH_URL=http://localhost:3000/api/auth
+```
+
+### Altering seed.js
+
+Now we need to update the script that seeds the database (`scripts/seed.js`) to use the
+pg client.
+
+6) Remove the import of vercel/postgres and replace it with the following 
+import:
+
+```javascript
+const { Client } = require('pg');
+```
+
+7) At the bottom of the file modify the main function so that it uses pg to initialise the client.
+
+```javascript
+async function main() {
+  // will automatically pick-up env vars defined in .env file
+  const client = new Client();
+  await client.connect();
+
+  await seedUsers(client);
+  await seedCustomers(client);
+  await seedInvoices(client);
+  await seedRevenue(client);
+
+  await client.end();
+}
+```
+
+8) Finally we need to replace all calls to `client.sql` with `client.query` and invoke the function
+with parenthesis and not a template literal. For example: 
+
+```javascript
+async function seedUsers(client) {
+  try {
+    await client.query(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`);
+    // Create the "users" table if it doesn't exist
+    const createTable = await client.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        email TEXT NOT NULL UNIQUE,
+        password TEXT NOT NULL
+        );
+    `);
+```
+
+*Don't forget to paramatarise any variables!*
+
+```javascript
+const insertedUsers = await Promise.all(
+  users.map(async (user) => {
+    const hashedPassword = await bcrypt.hash(user.password, 10);
+    // parameterized query
+    return client.query(`
+    INSERT INTO users (id, name, email, password)
+    VALUES ($1, $2, $3, $4)
+    ON CONFLICT (id) DO NOTHING;`,
+      [user.id, user.name, user.email, hashedPassword]);
+  }),
+);
+```
+<figcaption>Paramatarise any variables</figcaption>
+
+9) Make sure you have defined the "seed" npm script in your package.json file.
+
+```json
+"seed": "node -r dotenv/config ./scripts/seed.js"
+```
+
+10) Now when you run the seed script everything should work!
+
+```bash
+> npm run seed
+```
+
+## Drop-in repalacement
+
+Updating the seed script is a one off as it is outside of the main application. 
+If you look at the queries performed in the main application code they use the 
+vercel/postgres sql function and are all structred something like this:
+
+```typescript
+sql<Revenue>`SELECT * FROM revenue`
+```
+
+We don't want to have to go through the rest of the code base and update all the queries. 
+Instead it would be much easier and more effcient if we could simply create a similar function
+with the same name that we could simple swap in.
+
+11) Create a new file in `app/lib/` called `db.ts` with the following content:
+
+```typescript
+// based on example provided here: https://github.com/vercel/examples/issues/701#issuecomment-1950288726
+import { Pool, QueryResult, QueryResultRow } from 'pg';
+
+const pool = new Pool();
+
+function sqlTemplate(strings: TemplateStringsArray, ...values: Primitive[]): [string, Primitive[]] {
+  if (!isTemplateStringsArray(strings) || !Array.isArray(values)) {
+    // strings is not a template strings array, meaning this function was not invoked using a template literal
+    throw new Error(`It looks like you tried to call "sql" as a function. Make sure to use it as a tagged template.
+    Example: sql\`SELECT * FROM users\`, not sql('SELECT * FROM users')`);
+  }
+
+  // get the start of the query
+  let result = strings[0] ?? '';
+
+  for (let i = 1; i < strings.length; i++) {
+    // construct the rest of the query placing tokens to represent parametrized values, e.g. $1, $2, $3 etc...
+    result += `$${i}${strings[i] ?? ''}`;
+  }
+
+  return [result, values];
+}
+
+function isTemplateStringsArray(strings: unknown): strings is TemplateStringsArray {
+  // raw is the string as it was entered including escape sequences e.g. \n
+  return (
+    Array.isArray(strings) && 'raw' in strings && Array.isArray(strings.raw)
+  );
+}
+
+// TemplateStringsArray is the type for template literals see: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals
+export async function sql<T extends QueryResultRow>(strings: TemplateStringsArray, ...values: Primitive[]): Promise<QueryResult<T>> {
+  const [query, parameters] = sqlTemplate(strings, ...values);
+
+  return pool.query<T>(query, parameters);
+}
+
+type Primitive = string | number | boolean | undefined | null;
+
+```
+
+This script is based on an example given in a GitHub issue thread on the same subject.<sup>[3](#notes)</sup> 
+
+### Client pool
+At the top of the file we initialise a new pool. A pool allows us to "checkout" a ready-to-go PostgreSQL client 
+and then check the client back in once we are done. Using a pool avoids having to establish a client
+connection to the database each time we want to interact with it. You can read more about them [here](https://node-postgres.com/features/pooling).
+
+### The sql function
+From this file we export a function called "sql". This is our drop-in replacement for the vercel "sql" function.
+Like the original it can be invoked using a template literal. 
+Functions that can be invoked in this fashion are called a "Tag Function"<sup>[4](#notes)</sup>. 
+
+The first argument to a tag function is the template literal broken down into an array with each 
+expression serving as a delimeter. The second argument is all the expressions contained in the template.
+
+For example if we were to call the function like so:
+
+```typescript
+const name = 'Bob';
+const occupation = 'cyber security';
+sql`SELECT * FROM customers WHERE name = ${name} AND occupation = ${occupation}`
+```
+
+Then the "strings" argument would be an array of two strings, split where the expressions occured:
+
+```javascript
+["SELECT * FROM customer WHERE name = ", " AND occupation = "]`
+```
+ 
+The "values" argument would be the values held by the expressions:
+
+```javascript
+["Bob", "cyber security"]
+```
+
+### The sqlTemplate function
+
+The sqlTemplate function can take the strings and the values passed to the sql function and return 
+a paramatarised query along with the values.
+
+Following on from our previous example it would return:
+
+```javascript
+["SELECT * FROM customers WHERE name = $1 AND occupation = $2", ["Bob", "cyber security"]]
+```
+
+These can then be used to run the query!
+
+```typescript
+const [query, parameters] = sqlTemplate(strings, ...values);
+// run the query!
+return pool.query<T>(query, parameters);
+```
+
+12) The final step is to simply go into `app/lib/data.js` and replace the import of the original 
+sql function with an import of our newly created sql function.
+
+```typescript
+// import { sql } from '@vercel/postgres';
+import { sql } from './db';
+```
+Aside from having a nice drop-in replacement for the original vercel/postgres function. By having all our queries
+go through the same function we only need to make a change in one location for it to affect all our queries. For
+example we could add some performance logging to our "sql" function.
+
+```typescript
+export async function sql<T extends QueryResultRow>(strings: TemplateStringsArray, ...values: Primitive[]): Promise<QueryResult<T>> {
+  const [query, parameters] = sqlTemplate(strings, ...values);
+
+  const timer: string = 'Query performed in';
+  console.time(timer);
+  const result = pool.query<T>(query, parameters);
+  console.timeEnd(timer);
+
+  return result;
+}
+
+```
+
+## Notes
+1. Next.js - Chapter 6: Setting Up Your Database: https://nextjs.org/learn/dashboard-app/setting-up-your-database
+2. Docker setup using the apt repository: https://docs.docker.com/engine/install/debian/#install-using-the-repository
+3. GitHub issue thread on running the Next.js tutorial database locally: https://github.com/vercel/examples/issues/701#issuecomment-1950288726
+4. Tagged Template: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals#tagged_templates
