@@ -6,13 +6,15 @@ title: '06-02-2025-Inkg-Dash-v3'
 import Link from '../../components/Link.astro';
 import IconButton from '../../components/IconButton.astro';
 import Video from '../../components/Video.astro';
-export const components = { a: Link };
+export const components = {a: Link};
 
 # Inky Dash v3
 
 Recently, I've been updating an [old project](/posts/20200605-inky-dash) of mine, **Inky Dash**, which I originally built back in 2020.
 Inky Dash is a web interface for [Pimoroni's](https://shop.pimoroni.com/) line of Raspberry Pi ePaper displays. It is intended
 to be self-hosted on the Pi connected to the display and accessed from a browser over a local network.
+
+<IconButton class="my-4" icon="github" url="https://github.com/r-rayns/inky_dash">View on GitHub</IconButton>
 
 For this complete rewrite, I used the Flask framework to build a backend that exposes an API, interacts with the display's library and
 serves a static frontend built with Next.js.
@@ -36,8 +38,8 @@ to easily crop the image to the correct size. Once cropped it is dithered by the
 
 
 <figure>
-    <Video src="/video/slideshow-demo.mp4"/>
-    <figcaption>A demonstration of the slideshow feature</figcaption>
+  <Video src="/video/slideshow-demo.mp4"/>
+  <figcaption>A demonstration of the slideshow feature</figcaption>
 </figure>
 
 ## Image feed mode
@@ -46,18 +48,34 @@ The new image feed mode allows the display to automatically update with images f
 When enabled, the display periodically checks a URL that points to a PNG or JPEG image, downloading and displaying the
 latest version at a chosen interval.
 
-![Inky Impression 4\" displaying an image feed](/images/inky_impression4_image_feed.jpeg "Inky Impression 4\" displaying an image feed")
-<figcaption>An Inky Impression 4" displaying an image feed</figcaption>
-
-Image feed mode provides an easy way to extend the functionality of the display by allowing independent services to
-control what is displayed. For example, I created a [service](https://github.com/r-rayns/inky_uk_energy) that queries the UK's carbon
-intensity API to get the current energy generation mix and output it as an image. That image is hosted locally,
-the URL for which can then be set as the source for the image feed, allowing the display to automatically show current
-energy generation data for the UK.
+Image feed mode provides an easy way for myself or third-parties to extend the functionality of the display.
+Just host an image, either locally (for personal use) or on the web and then point Inky Dash to that location.
 
 <figure>
-    <Video src="/video/image-feed-demo.mp4"/>
-    <figcaption>A demonstration of the image feed feature</figcaption>
+  <Video src="/video/image-feed-demo.mp4"/>
+  <figcaption>A demonstration of the image feed feature</figcaption>
 </figure>
 
-<IconButton class="my-4" icon="github" url="https://github.com/r-rayns/inky_dash">View on GitHub</IconButton>
+I've created two example projects that can be used as images feeds...
+
+### UK Energy Dashboard
+The first one is a [dashboard](https://github.com/r-rayns/inky_uk_energy) that uses the [NESO API](https://carbon-intensity.github.io/api-definitions/#carbon-intensity-api-v2-0-0)
+to display a live feed of the UK's energy generation mix and carbon intensity.
+
+It works by periodically processing a Jinja template using the data returned from the API and taking a screenshot of the
+rendered HTML using playwright.
+
+The screenshot is hosted locally, the URL for which can then be set as the source for
+the image feed, allowing the display to automatically show the current energy generation data for the UK.
+
+![Inky Impression 4\" displaying UK energy dashboard](/images/inky-impression4-image-feed.jpeg "Inky Impression 4\" displaying UK energy dashboard")
+<figcaption>Inky Impression 4" displaying my UK energy dashboard</figcaption>
+
+### YouTube Live Stream Capture
+The second project is a [YouTube Live Stream Capture](https://github.com/r-rayns/inky_yt_capture) that periodically
+captures the latest frame from a YouTube live stream and saves it as an Image.
+
+Again that image can be hosted and provided as the source for the image feed.
+
+![Inky Impression 4\" displaying a jellyfish cam](/images/inky-impression4-jelly-cam.jpeg "Inky Impression 4\" displaying a jellyfish cam")
+<figcaption>Inky Impression 4" displaying a frame from a jellyfish cam</figcaption>
