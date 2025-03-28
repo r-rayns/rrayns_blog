@@ -2,12 +2,15 @@
 import Link from "../components/Link.astro";
 import Layout from "../layouts/Layout.astro";
 import Icon from "../components/Icon.astro"
+import ContactLink from "../components/ContactLink.astro";
 ---
 
 <Layout title="contact">
   <main>
-    <div class="relative h-64 w-full overflow-hidden flex shadow-[0_-10px_5px_0_inset] shadow-cyan-100 dark:shadow-zinc-900">
-      <div class="absolute w-full p-2 bg-cyan-100/50 dark:bg-zinc-900/80 flex flex-col gap-2 h-full justify-evenly">
+    <div
+      class="relative h-64 w-full overflow-hidden flex shadow-[0_-10px_5px_0_inset] shadow-cyan-100 dark:shadow-zinc-900">
+      <div
+        class="absolute w-full p-1 md:p-2 bg-cyan-100/50 dark:bg-zinc-900/80 flex flex-col gap-2 h-full justify-evenly">
 
         <div class="text-xl dark:text-cyan-300 text-cyan-600 font-serif ">
           <p class="font-weight-900 block">Hello! 👋</p>
@@ -16,11 +19,13 @@ import Icon from "../components/Icon.astro"
             This site is a space for me to document my various personal projects.
           </p>
         </div>
-        <div class="py-4 flex items-center justify-evenly text-md">
-          <span class="flex items-center"><Icon icon="email" class="w-4 h-4 md:w-7 md:h-7 mr-2 dark:fill-white"></Icon><Link href="mailto:robert@rrayns.co.uk?Subject=I%20was%20on%20your%20site%20and...">Email</Link></span>
-          <span class="flex items-center"><Icon icon="linkedin" class="w-4 h-4 md:w-7 md:h-7 mr-2"></Icon><Link href="https://www.linkedin.com/pub/robert-raynsford/8a/4b2/8ab">LinkedIn</Link></span>
-          <span class="flex items-center"><Icon icon="github" class="w-4 h-4 md:w-7 md:h-7 mr-2 dark:fill-white"></Icon><Link href="https://github.com/r-rayns">GitHub</Link></span>
-          </div>
+        <div class="py-2 md:py-4 flex items-center justify-evenly text-sm md:text-base">
+          <ContactLink href="mailto:robert@rrayns.co.uk?Subject=I%20was%20on%20your%20site%20and..." icon="email"
+                       text="Email"/>
+          <ContactLink href="https://bsky.app/profile/rrayns.co.uk" icon="bluesky" text="Bluesky"/>
+          <ContactLink href="https://www.linkedin.com/pub/robert-raynsford/8a/4b2/8ab" icon="linkedin" text="LinkedIn"/>
+          <ContactLink href="https://github.com/r-rayns" icon="github" text="GitHub"/>
+        </div>
       </div>
       <video
         autoplay
@@ -29,10 +34,9 @@ import Icon from "../components/Icon.astro"
         loop
         class="absolute object-cover w-full object-center h-64 -z-10"
       >
-        <source src="video/dartmoor.mp4" type="video/mp4" />
+        <source src="/video/dartmoor.mp4" type="video/mp4"/>
       </video>
     </div>
   </main>
 </Layout>
-<!-- <span class="fill-white" set:html={githubsvg}/> -->
 <style></style>

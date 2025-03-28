@@ -1,0 +1,23 @@
+---
+import Link from "./Link.astro";
+import Icon from "./Icon.astro";
+export interface Props {
+  href: string;
+  icon: string;
+  text: string;
+  class?: string;
+}
+
+let {class: className, icon, href, text} = Astro.props;
+className = `${className} flex items-center
+md:bg-white/50 md:dark:bg-white/5
+hover:outline-cyan/60 hover:dark:outline-white/10 hover:outline
+rounded-sm p-2`;
+---
+
+<Link
+  class={className}
+  href={href}>
+  <Icon icon={icon} class="w-12 h-auto md:w-7 md:h-auto md:mr-2 dark:fill-white"/>
+  <span class="hidden md:inline">{text}</span>
+</Link>
