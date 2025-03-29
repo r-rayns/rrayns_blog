@@ -1,4 +1,4 @@
-import { defineConfig } from 'astro/config';
+import {defineConfig} from 'astro/config';
 import tailwind from "@astrojs/tailwind";
 import mdx from "@astrojs/mdx";
 import sitemap from "@astrojs/sitemap";
@@ -9,9 +9,11 @@ export default defineConfig({
   integrations: [tailwind(), mdx(), sitemap()],
   markdown: {
     shikiConfig: {
-      // Choose from Shiki's built-in themes (or add your own)
-      // https://github.com/shikijs/shiki/blob/main/docs/themes.md
-      theme: 'css-variables'
+      themes:{
+        light: 'catppuccin-latte',
+        dark: 'catppuccin-mocha'
+      },
+      defaultColor: 'light'
     }
   },
   vite: {
