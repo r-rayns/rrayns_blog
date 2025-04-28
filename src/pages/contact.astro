@@ -3,23 +3,29 @@ import Link from "../components/Link.astro";
 import Layout from "../layouts/Layout.astro";
 import Icon from "../components/Icon.astro"
 import ContactLink from "../components/ContactLink.astro";
+import SectionHeader from '../components/SectionHeader.astro';
 ---
 
 <Layout title="contact">
   <main>
-    <div
-      class="relative h-64 w-full overflow-hidden flex shadow-[0_-10px_5px_0_inset] shadow-cyan-100 dark:shadow-zinc-900">
-      <div
-        class="absolute w-full p-1 md:p-2 bg-cyan-100/50 dark:bg-zinc-900/80 flex flex-col gap-2 h-full justify-evenly">
+    <SectionHeader gradientColour="emerald">👋 Robert Raynsford</SectionHeader>
 
-        <div class="text-xl dark:text-cyan-300 text-cyan-600 font-serif ">
-          <p class="font-weight-900 block">Hello! 👋</p>
-          <p class="text-base divide-y divide-dashed">
-            My name is Robert Raynsford and I'm software developer from England.
-            This site is a space for me to document my various personal projects.
+    <section class="flex flex-col md:flex-row gap-3 text-base font-serif dark:text-zinc-100 text-slate-800">
+      <img class="w-48 h-48 md:w-64 md:h-auto rounded-full md:rounded-none object-cover mx-auto md:mx-0"
+           src="/images/me.jpeg" alt="Robert Raynsford"/>
+      <div class="flex flex-col justify-between">
+        <div class="flex flex-col gap-2">
+          <p>
+            Hello!
+            My name is Robert Raynsford and I'm a software developer from England.
+          </p>
+          <p>
+            This site is a space for me to document my personal projects, share my coding experiences, and discuss what I've learned
+            along the way. I find writing helps me organize my thoughts and ingrain knowledge. Who knows—perhaps something
+            I share here might help someone else someday!
           </p>
         </div>
-        <div class="py-2 md:py-4 flex items-center justify-evenly text-sm md:text-base">
+        <div class=" flex items-center justify-evenly text-sm md:text-base">
           <ContactLink href="mailto:robert@rrayns.co.uk?Subject=I%20was%20on%20your%20site%20and..." icon="email"
                        text="Email"/>
           <ContactLink href="https://bsky.app/profile/rrayns.co.uk" icon="bluesky" text="Bluesky"/>
@@ -27,16 +33,7 @@ import ContactLink from "../components/ContactLink.astro";
           <ContactLink href="https://github.com/r-rayns" icon="github" text="GitHub"/>
         </div>
       </div>
-      <video
-        autoplay
-        muted
-        playsinline
-        loop
-        class="absolute object-cover w-full object-center h-64 -z-10"
-      >
-        <source src="/video/dartmoor.mp4" type="video/mp4"/>
-      </video>
-    </div>
+    </section>
   </main>
 </Layout>
 <style></style>

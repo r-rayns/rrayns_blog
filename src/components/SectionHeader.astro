@@ -1,0 +1,20 @@
+---
+export interface Props {
+  class?: string;
+  gradientColour?: 'sky' | 'cyan' | 'pink' | 'emerald';
+}
+
+let {class: className, gradientColour} = Astro.props;
+let gradientClasses = 'from-cyan-200 dark:from-transparent to-transparent dark:to-cyan-700'
+if (gradientColour === 'sky') {
+  gradientClasses = 'from-sky-200 dark:from-transparent to-transparent dark:to-sky-300'
+} else if (gradientColour === 'pink') {
+  gradientClasses = 'from-fuchsia-200 dark:from-transparent to-transparent dark:to-fuchsia-300'
+} else if (gradientColour === 'emerald') {
+  gradientClasses = `from-emerald-200 dark:from-transparent to-transparent dark:to-emerald-300`
+}
+className = `${className} ${gradientClasses} antialiased bg-gradient-to-r text-slate-700 dark:text-slate-100 text-xl font-thin rounded-md md:w-[75%] p-1 my-4 relative overflow-hidden`;
+---
+<header class={className}>
+  <slot/>
+</header>

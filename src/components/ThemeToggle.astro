@@ -3,15 +3,19 @@ export interface Props {
   class?: string;
 }
 
-let { class: className } = Astro.props as Props;
-className = `${className} hover:ring-1 rounded-full drop-shadow-lg bg-gradient-to-r from-cyan-200 to-cyan-400 dark:from-zinc-900 dark:to-cyan-800 md:rounded-none p-1 text-base`;
+let {class: className} = Astro.props as Props;
+className = `${className} hover:ring-1 rounded-full drop-shadow-md bg-cyan-100
+dark:bg-zinc-900 md:rounded-md p-1 text-base`;
 ---
 
-<button id="theme-toggle" class={className}><span class="text-sm font-mono text-cyan-800 dark:text-cyan-100 hidden md:inline">theme</span> <span id="mode-icon" class="relative top-[-1px]"></span></button>
+<button id="theme-toggle" class={className}><span
+    class="text-sm font-mono text-cyan-800 dark:text-cyan-100 hidden md:inline">theme</span> <span id="mode-icon"
+                                                                                                   class="relative top-[-1px]"></span>
+</button>
 
 <script is:inline>
   const themeToggle = document.getElementById("theme-toggle");
-  const modeIcon= document.getElementById("mode-icon");
+  const modeIcon = document.getElementById("mode-icon");
   themeToggle.addEventListener("click", toggleTheme);
 
   if (typeof localStorage !== "undefined" && localStorage.getItem("theme")) {
@@ -25,10 +29,10 @@ className = `${className} hover:ring-1 rounded-full drop-shadow-lg bg-gradient-t
 
   function setTheme(mode) {
     if (mode === "dark") {
-      modeIcon.innerHTML = "🌞";
+      modeIcon.innerHTML = "🌙";
       document.documentElement.classList.add("dark");
     } else {
-      modeIcon.innerHTML = "🌙";
+      modeIcon.innerHTML = "🌞";
       document.documentElement.classList.remove("dark");
     }
     window.localStorage.setItem("theme", mode);

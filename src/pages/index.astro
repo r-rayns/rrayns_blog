@@ -1,12 +1,14 @@
 ---
 import Layout from "../layouts/Layout.astro";
 import PostLink from "../components/PostLink.astro";
+import SectionHeader from '../components/SectionHeader.astro';
 ---
 
 <Layout title="blog">
   <main>
 
-    <div class="flex flex-col gap-4">
+    <SectionHeader>📔 Articles</SectionHeader>
+    <div class="flex flex-col gap-8">
       <PostLink href="./posts/20250328-inky-dash-v3">
         Inky Dash v3 - an interface for an ePaper device
         <span slot="date">28<sup>th</sup> Mar 2025</span>
@@ -23,29 +25,29 @@ import PostLink from "../components/PostLink.astro";
         My typical Git workflow
         <span slot="date">5<sup>th</sup> Aug 2023</span>
       </PostLink>
-      <PostLink href="./posts/20220502-spooky-kingdom"
-        >Spooky Kingdom - a spooky news archive
+      <PostLink href="./posts/20220502-spooky-kingdom">
+        Spooky Kingdom - a spooky news archive
         <span slot="date">2<sup>nd</sup> Apr 2022 - *Updated: 1<sup>st</sup> Aug 2023*</span>
       </PostLink>
-      <PostLink href="./posts/20210907-development-environment-2021"
-        >Development environment 2021
+      <PostLink href="./posts/20210907-development-environment-2021">
+        Development environment 2021
         <span slot="date">7<sup>th</sup> Sep 2021</span>
       </PostLink>
-      <PostLink href="./posts/20201018-a-local-news-webcrawler"
-        >A local news webcrawler<span slot="date">18<sup>th</sup> Nov 2020</span>
+      <PostLink href="./posts/20201018-a-local-news-webcrawler">
+        A local news webcrawler<span slot="date">18<sup>th</sup> Nov 2020</span>
       </PostLink>
-      <PostLink href="./posts/20200605-inky-dash"
-        >Inky Dash - an interface for the Inky pHAT ePaper display<span
+      <PostLink href="./posts/20200605-inky-dash">
+        Inky Dash - an interface for the Inky pHAT ePaper display<span
           slot="date">5<sup>th</sup> Jun 2020</span
-        >
+      >
       </PostLink>
-      <PostLink href="./posts/20200426-detecting-door-movements-with-a-smartphone"
-        >Detecting door movements with a smartphone<span slot="date"
-          >26<sup>th</sup> Mar 2020</span
-        >
+      <PostLink href="./posts/20200426-detecting-door-movements-with-a-smartphone">
+        Detecting door movements with a smartphone<span slot="date"
+      >26<sup>th</sup> Mar 2020</span
+      >
       </PostLink>
-      <PostLink href="./posts/20190823-station-watcher-e-ink-display"
-        >Station watcher e-ink display<span slot="date">23<sup>rd</sup> Aug 2019</span>
+      <PostLink href="./posts/20190823-station-watcher-e-ink-display">
+        Station watcher e-ink display<span slot="date">23<sup>rd</sup> Aug 2019</span>
       </PostLink>
     </div>
   </main>
