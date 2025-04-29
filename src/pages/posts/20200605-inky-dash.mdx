@@ -2,6 +2,7 @@
 layout: ../../layouts/BlogPostLayout.astro
 title: '05-06-2020-Inkg-Dash'
 ---
+import Figure from '../../components/Figure.astro';
 import Link from '../../components/Link.astro';
 import Video from '../../components/Video.astro';
 import IconButton from '../../components/IconButton.astro';
@@ -12,8 +13,9 @@ export const components = {a: Link, Video};
 
 The project is structured as a monorepo with the server and UI code bundled together. By treating the application as a whole it meant fewer steps were needed to deploy and run it.
 
-<Video src="/video/inky_dash.mp4"/>
-<figcaption>Uploading an image</figcaption>
+<Figure caption="Uploading an image">
+  <Video src="/video/inky_dash.mp4#t=0.001" title="Uploading an image to Inky Dash"/>
+</Figure>
 
 <IconButton class="my-4" icon="github" url="https://github.com/r-rayns/inky_dash">View on GitHub</IconButton>
 

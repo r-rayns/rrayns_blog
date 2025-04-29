@@ -3,6 +3,10 @@ layout: ../../layouts/BlogPostLayout.astro
 title: '28-03-2025-Inky-Dash-v3'
 ---
 
+import {Image} from 'astro:assets';
+import imageFeedExample from '../../assets/images/inky-impression4-image-feed.jpeg';
+import jellyCam from '../../assets/images/inky-impression4-jelly-cam.jpeg';
+import Figure from '../../components/Figure.astro';
 import Link from '../../components/Link.astro';
 import IconButton from '../../components/IconButton.astro';
 import Video from '../../components/Video.astro';
@@ -29,18 +33,16 @@ Inky Dash v1 originally supported a single display type, the Inky pHAT. Inky Das
 - [Inky Impression 5.7"](https://shop.pimoroni.com/products/inky-impression-5-7?variant=32298701324371)
 - [Inky Impression 7.3"](https://shop.pimoroni.com/products/inky-impression-7-3?variant=40512683376723)
 
-The display type is automatically detected when Inky Dash is started, or can be set manually in the settings.
+The display type is automatically detected when Inky Dash is started or can be set manually in the settings.
 
 ## Slideshow mode
 
 A sequence of images can now be uploaded and displayed as a slideshow. When uploading an image a cropping tool allows the user
-to easily crop the image to the correct size. Once cropped it is dithered by the server, using the display's compatible palette.
+to easily crop the image to the correct size. Once cropped, it is dithered by the server, using the display's compatible palette.
 
-
-<figure>
-  <Video src="/video/slideshow-demo.mp4"/>
-  <figcaption>A demonstration of the slideshow feature</figcaption>
-</figure>
+<Figure caption="A demonstration of the slideshow feature">
+  <Video src="/video/slideshow-demo.mp4#t=0.001" title="Slideshow demo"/>
+</Figure>
 
 ## Image feed mode
 
@@ -51,10 +53,9 @@ latest version at a chosen interval.
 Image feed mode provides an easy way for myself or third-parties to extend the functionality of the display.
 Just host an image, either locally (for personal use) or on the web and then point Inky Dash to that location.
 
-<figure>
-  <Video src="/video/image-feed-demo.mp4"/>
-  <figcaption>A demonstration of the image feed feature</figcaption>
-</figure>
+<Figure caption="A demonstration of the image feed feature">
+  <Video src="/video/image-feed-demo.mp4#t=0.001" title="Image feed demo"/>
+</Figure>
 
 I've created two example projects that can be used as images feeds...
 
@@ -68,8 +69,11 @@ rendered HTML using playwright.
 The screenshot is hosted locally, the URL for which can then be set as the source for
 the image feed, allowing the display to automatically show the current energy generation data for the UK.
 
-![Inky Impression 4\" displaying UK energy dashboard](/images/inky-impression4-image-feed.jpeg "Inky Impression 4\" displaying UK energy dashboard")
-<figcaption>Inky Impression 4" displaying my UK energy dashboard</figcaption>
+<Figure caption="Inky Impression 4&quot; displaying my UK energy dashboard">
+  <Image src={imageFeedExample}
+         title="Inky Impression 4&quot; displaying my UK energy dashboard"
+         alt="Inky Impression 4&quot; displaying my UK energy dashboard"/>
+</Figure>
 
 ### YouTube Live Stream Capture
 The second project is a [YouTube Live Stream Capture](https://github.com/r-rayns/inky_yt_capture) that periodically
@@ -77,5 +81,8 @@ captures the latest frame from a YouTube live stream and saves it as an image.
 
 Again that image can be hosted and provided as the source for the image feed.
 
-![Inky Impression 4\" displaying a jellyfish cam](/images/inky-impression4-jelly-cam.jpeg "Inky Impression 4\" displaying a jellyfish cam")
-<figcaption>Inky Impression 4" displaying a frame from a jellyfish cam</figcaption>
+<Figure caption="Inky Impression 4&quot; displaying a frame from a jellyfish cam">
+  <Image src={jellyCam}
+         title="Inky Impression 4&quot; displaying a frame from a jellyfish cam"
+         alt="Inky Impression 4&quot; displaying a frame from a jellyfish cam"/>
+</Figure>

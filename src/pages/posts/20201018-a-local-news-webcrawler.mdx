@@ -4,6 +4,7 @@ title: '18-10-2020-A-Local-News-Webcrawler'
 ---
 import Link from '../../components/Link.astro';
 import IconButton from '../../components/IconButton.astro';
+import Figure from '../../components/Figure.astro';
 export const components = { a: Link };
 
 # A local news webcrawler
@@ -31,6 +32,7 @@ The SitemapSpider could also be configured to filter certain links based on the 
 ## A Spider's Journey
 Each spider starts life as child class of the SpookySpider. A spider is given a name, the url of where it's crawl will begin and it's own logger instance. Also defined is the job directory, this is used by Scrapy to save the spiders progress. Should the service require restarting Scrapy can resume the spider where it left off. 
 
+<Figure caption="The classes defining the spiders for the Liverpool Echo and the Manchester Evening News">
 ```python
 class SpookyLiverpool(SpookySpider):
   name = "spooky_liverpool"
@@ -46,7 +48,7 @@ class SpookyManchester(SpookySpider):
   sitemap_urls = ['https://www.manchestereveningnews.co.uk/robots.txt']
   logger = create_logger('spider.manchester', job_dir, 'manchester.log')
 ```
-<figcaption>The classes defining the spiders for the Liverpool Echo and the Manchester Evening News</figcaption>
+</Figure>
 
 Having spiders track additions to the sitemap after their initial crawl ends was more difficult. Scrapy does not provide an obvious method of achieving this. Help came from a [blog post](https://web.archive.org/web/20200718190932/http://crawl.blog/scrapy-loop.html) I found that explained a way of looping web crawlers; <i>"since scrapy is using Twisted for crawl loop you can extend the same loop with your on[sic] callbacks"</i>.<sup>[1](#notes)</sup> 
 
@@ -56,6 +58,7 @@ The core logic of the loop can be seen in the _crawl function (below). Scrapy's 
 
 So now we have a spider that will perform a full crawl of the targets sitemap, wait 24 hours and crawl again. Only, on subsequent crawls, we pass a date threshold which filters articles from the sitemap based on the last mod date. This means spiders can skip articles they have already parsed and just focus on sitemap additions made since their last crawl. The loops continues until the Python process is stopped.
 
+<Figure caption="The recursive _crawl function that is core to the looping of spiders">
 ```python
 process = CrawlerProcess(get_project_settings())
 
@@ -81,11 +84,12 @@ _crawl(None, SpookyManchester, ArticleParser(
   'Manchester Evening News', SpookyManchester.logger).parse_article
   , SpookyManchester.logger)
 ```
-<figcaption>The recursive _crawl function that is core to the looping of spiders</figcaption>
+</Figure>
 
 ## The Parser
 Every spider has it's own instance of the ArticleParser class. The ArticleParser class contains a parser function that takes a scraped article as an argument. This function extracts the articles body then attempts to classify it as either ghost, ufo or weird. If a classification is made additional data is extracted such as the article's date, title and description, then the article is saved to the database.
 
+<Figure caption="The parse function">
 ```python
 
 def parse_article(self, doc):
@@ -118,13 +122,14 @@ def parse_article(self, doc):
   self.store_article(extractedData)
   return
 ```
-<figcaption>The parse function</figcaption>
+</Figure>
 
 ## Extraction
 Extraction is attempted individually for each property we wish to scrape, e.g. body, title, date etc... 
 
 Fortunately most local news sites have a similar DOM structure so extraction methods can be cross purpose. Extracting data from JSON-LD<sup>[3](#notes)</sup> is attempted first if this fails an array of xpath/css selectors are tried. If one selector fails the next one is applied and so on until no selectors remain or a selector was successful in extracting data. With this method if a publication uses a different DOM structure to those previously encountered, new selectors to handle the structure can be appended to the selector arrays. 
 
+<Figure caption="Extract function with two example of the selector arrays">
 ```python
 
 ...
@@ -154,13 +159,14 @@ def extract(self, document, selectors, *json_property):
       return self._try_selectors(document, selectors)
             
 ```
-<figcaption>Extract function with two examples of the selector arrays</figcaption>
+</Figure>
 
 ## Classification
 Classification of articles is done using a primitive string match on the articles content. The goal is to class a story as either "ghost", "ufo" or "weird" and discard anything that does not fit these categories. 
 
 To achieve this a weighting system is used where different words and phrases have associated scores. When an article scores above two in any of the three categories it's classed with the category it scored highest in and saved. Over time the scores can be tweaked to improve article classification.
 
+<Figure caption="The classification function and example weightings">
 ```python
 ...
 
@@ -201,6 +207,7 @@ ufo_weighting = Weighting({
   'ufos': 1,
   'cloud': -1
   ...
+  )}
 
 weird_weighting = Weighting({
   'cryptid': 2,
@@ -209,7 +216,7 @@ weird_weighting = Weighting({
   'mystery beast': 1,
   'big cat': 0.5,
   ...
-
+  )}
 ...
 
 def classify_article(self, article):
@@ -236,7 +243,7 @@ def classify_article(self, article):
 
   return article_class
 ```
-<figcaption>The classification function and example weightings</figcaption>
+</Figure>
 
 ## Results
 I have had the spiders running continuously for a few weeks on a Raspberry Pi and so far have scraped 311 articles. The majority of articles have been correctly classified. However there are some false positives. For these I look at the article and tweak the weighting system to avoid saving similar stories in the future. One such example is the word "ghost" appearing in the context of "ghost shark". To avoid this I now explicitly give "ghost shark" a negative score.

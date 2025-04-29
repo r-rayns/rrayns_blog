@@ -2,20 +2,34 @@
 layout: ../../layouts/BlogPostLayout.astro
 title: '02-05-2022-Spooky-Kingdom'
 ---
+
+import {Image} from 'astro:assets';
+import spookyArchitecture from '../../assets/images/spookykingdom-architecture.png';
+import spookyRedesign from '../../assets/images/spookykingdom-redesign.png';
+import spookyAdmin from '../../assets/images/spookykingdom-admin.png';
+import Figure from '../../components/Figure.astro';
 import Link from '../../components/Link.astro';
 import IconButton from '../../components/IconButton.astro';
 export const components = { a: Link };
 
 # Spooky Kingdom - a spooky news archive
 Having previously created a "spooky" news webcrawler I wanted to make the database of crawled paranormal articles accessible over the web, so I built and deployed https://spookykingdom.co.uk. On the site you are able to browse articles and filter them by date, subject and publisher. As well as a convenient way to view the database Spooky Kingdom also features admin controls that allow me to review and edit each article.
-![Screenshot of the admin edit controls on spookykingdom.co.uk](/images/spookykingdom-edit.png "Admin controls")
-<figcaption>Spooky Kingdom admin controls for editing</figcaption>
+<Figure caption="Spooky Kingdom admin controls for editing">
+  <Image src={spookyAdmin}
+         title="Screenshot of the admin edit controls on spookykingdom.co.uk"
+         alt="Screenshot of the admin edit controls on spookykingdom.co.uk"
+         loading="eager"/>
+</Figure>
 
 ## Architecture
 The webcrawlers run within my local network on a Raspberry Pi 3. When a webcrawler discovers a spooky article a POST request is sent, detailing the discovery, to the Spooky Kingdom API using an API key to authenticate. Received articles are stored in a database and marked for review. An admin must review pending articles, deciding whether to approve or reject them, this final step filters out any false positives. Finally, all approved articles are available in a paginated list for users to view and filter.
 
-![Spooky Kingdom architecture diagram](/images/spookykingdom-architecture.png "Spooky Kingdom architecture diagram")
-<figcaption>Spooky Kingdom architecture diagram</figcaption>
+<Figure caption="Spooky Kingdom architecture diagram">
+  <Image src={spookyArchitecture}
+         title="Spooky Kingdom architecture diagram"
+         alt="Spooky Kingdom architecture diagram"
+         loading="eager"/>
+</Figure>
 
 ## API
 I used the Echo web framework to structure my Go API, described as a <i>"High performance, extensible, minimalist Go web framework"</i><sup>[1](#notes)</sup>. Echo provided me with an initial structure which I built upon using the standard concepts of routes, controllers and models.
@@ -28,6 +42,7 @@ My validation methods are simply a list of IF statements checking the properties
 
 Once past validation the controller method will then invoke the related method on the model to perform any database actions; insertions, edits, retrievals etc... Any data retrieved from the database is returned as JSON to the client.
 
+<Figure caption="Controller method for storing a new article">
 ```go
 // StoreArticle function handles the storing of an article
 func (ac *ArticleController) StoreArticle(c echo.Context) error {
@@ -53,7 +68,7 @@ func (ac *ArticleController) StoreArticle(c echo.Context) error {
     return c.JSON(http.StatusOK, responses.NewArticleResponse(*article))
 }
 ```
-<figcaption>Controller method for storing a new article</figcaption>
+</Figure>
 
 ## Deployment
 When compiled Go produces a single static binary file which make deployment simple.
@@ -63,11 +78,15 @@ Fortunately this can be easily accomplished using the embed package (introduced 
 ## ✨ Update (01/08/2023) - Redesign
 I have now transitioned from Vue 2 to Vue 3, rewriting most of the front-end and giving it a redesign in the process. As part of this transition, I have also started utilising Tailwind CSS.
 
-I have found Tailwind to be beneficial. Styling is quick and efficient, all done within the template. It offers straightforward responsive design capabilities with the use of prefixes like `sm:`, `lg:` and so on.
+I have found Tailwind to be beneficial. Styling is quick and efficient, all done within the template. It offers straightforward responsive design capabilities with the use of prefixes like `md:`, `lg:` and so on.
 
 However, the HTML can get cluttered quickly with Tailwind utility classes, but I am taking this as a sign to segment some parts of my markup into distinct components.
-![Screenshot of the admin edit controls on spookykingdom.co.uk](/images/spookykingdom-redesign.png "New design")
-<figcaption>Spooky Kingdom, redesigned and using Vue 3!</figcaption>
+<Figure caption="Spooky Kingdom, redesigned and using Vue 3!">
+  <Image src={spookyRedesign}
+         title="Screenshot of the admin edit controls on spookykingdom.co.uk"
+         alt="Screenshot of the admin edit controls on spookykingdom.co.uk"/>
+
+</Figure>
 
 <IconButton class="my-4" icon="github" url="https://github.com/r-rayns/spooky_kingdom">View on GitHub</IconButton>
 

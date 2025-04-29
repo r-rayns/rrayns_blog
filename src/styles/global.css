@@ -56,10 +56,6 @@
         @apply text-base md:text-lg mb-4 font-bold text-cyan-500 dark:text-emerald-200
     }
 
-    .blog-post figcaption {
-        @apply text-sm text-slate-500 dark:text-slate-300 text-right -mt-4
-    }
-
     .blog-post p {
         @apply text-base md:text-lg subpixel-antialiased leading-relaxed my-4
     }
