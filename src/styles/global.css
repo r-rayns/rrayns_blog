@@ -1,0 +1,111 @@
+@import "tailwindcss";
+
+/* Support manual dark mode toggle */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+    :root {
+        --color-cyan-50: #f7f9fa;
+        --color-cyan-100: #e7f1fb;
+        --color-cyan-200: #cbdcf6;
+        --color-cyan-300: #a1b9e9;
+        --color-cyan-400: #7692d8;
+        --color-cyan-500: #5d6ec8;
+        --color-cyan-600: #4c52b1;
+        --color-cyan-700: #3a3d8c;
+        --color-cyan-800: #282a63;
+        --color-cyan-900: #17193d;
+    }
+
+    :root {
+        /* The Shiki variables are generated at runtime by Astro, this is just to keep the IDE happy */
+        --shiki-dark: initial;
+        --shiki-dark-bg: initial;
+        --shiki-dark-font-style: initial;
+        --shiki-dark-font-weight: initial;
+        --shiki-dark-text-decoration: initial;
+        /* No Shiki variables are generated for the light theme because it's the default */
+    }
+
+    /* Shiki Dark theme - applied when the .dark class is on the HTML element */
+    html.dark .astro-code,
+    html.dark .astro-code span {
+        color: var(--shiki-dark) !important;
+        background-color: var(--shiki-dark-bg) !important;
+    }
+
+    .blog-post h1 {
+        @apply text-2xl
+        md:text-4xl
+        mb-6
+        p-2
+        rounded-sm
+        bg-cyan-300
+        text-cyan-100
+        dark:bg-cyan-800
+        dark:text-emerald-300
+        font-bold
+        text-center
+    }
+
+    .blog-post h2 {
+        @apply text-xl md:text-2xl mb-4 font-bold text-cyan-600 dark:text-emerald-400
+    }
+
+    .blog-post h3 {
+        @apply text-base md:text-lg mb-4 font-bold text-cyan-500 dark:text-emerald-200
+    }
+
+    .blog-post figcaption {
+        @apply text-sm text-slate-500 dark:text-slate-300 text-right -mt-4
+    }
+
+    .blog-post p {
+        @apply text-base md:text-lg subpixel-antialiased leading-relaxed my-4
+    }
+
+    .blog-post ol code,
+    .blog-post p code {
+        @apply text-sm bg-slate-400 text-slate-100 dark:bg-slate-700 dark:text-slate-300 p-1 rounded-md
+    }
+
+    .blog-post img {
+        @apply p-2
+    }
+
+    .blog-post video {
+        @apply my-4
+    }
+
+    .blog-post a {
+        @apply text-cyan-600 dark:text-cyan-300 hover:text-cyan-400 dark:hover:text-cyan-500
+    }
+
+    .blog-post ol {
+        @apply list-decimal list-inside text-base break-words
+    }
+
+    .blog-post ol > li {
+        @apply mb-5 marker:font-bold marker:text-cyan-800 dark:marker:text-slate-300
+    }
+
+    .blog-post ul {
+        @apply list-disc list-inside text-lg leading-relaxed ml-4 mb-4
+    }
+
+    .blog-post li {
+        @apply text-base md:text-lg marker:text-cyan-800 dark:marker:text-slate-300
+    }
+
+    .blog-post sup {
+        @apply text-sm font-bold
+    }
+
+    .blog-post sup > a {
+        @apply no-underline
+    }
+
+    .blog-post .astro-code {
+        @apply text-sm my-4 p-2
+    }
+}

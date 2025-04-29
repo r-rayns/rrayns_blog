@@ -4,8 +4,8 @@ export interface Props {
 }
 
 let {class: className} = Astro.props as Props;
-className = `${className} hover:ring-1 rounded-full drop-shadow-md bg-cyan-100
-dark:bg-zinc-900 md:rounded-md p-1 text-base`;
+className = `${className} rounded-full md:rounded-md drop-shadow-md bg-cyan-100 hover:cursor-pointer hover:drop-shadow-lg
+dark:bg-zinc-900 dark:drop-shadow-amber-200/20 hover:dark:drop-shadow-amber-200/50 p-1 text-base`;
 ---
 
 <button id="theme-toggle" class={className}><span
