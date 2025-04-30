@@ -29,10 +29,10 @@ dark:bg-zinc-900 dark:drop-shadow-amber-200/20 hover:dark:drop-shadow-amber-200/
 
   function setTheme(mode) {
     if (mode === "dark") {
-      modeIcon.innerHTML = "🌙";
+      modeIcon.innerHTML = "🌞";
       document.documentElement.classList.add("dark");
     } else {
-      modeIcon.innerHTML = "🌞";
+      modeIcon.innerHTML = "🌙";
       document.documentElement.classList.remove("dark");
     }
     window.localStorage.setItem("theme", mode);
