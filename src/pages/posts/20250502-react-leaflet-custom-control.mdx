@@ -1,0 +1,293 @@
+---
+layout: ../../layouts/BlogPostLayout.astro
+title: '02-05-2025-custom-react-leaflet-control'
+---
+
+import Figure from '../../components/Figure.astro';
+import {Image} from 'astro:assets';
+import leafletControlOverlapImage from '../../assets/images/leaflet-control-overlap.png';
+import leafletCustomControlImage from '../../assets/images/leaflet-custom-control.png';
+import leafletCustomLegendImage from '../../assets/images/leaflet-custom-legend.png';
+
+# Building a custom Leaflet control with React Leaflet
+
+I found myself needing to build a legend control using the [React Leaflet library](https://react-leaflet.js.org/).
+React Leaflet is a convenient library that abstracts Leaflet into React components and provides an interface between the two.
+
+My initial attempt was to create a control following the example provided in the official documentation<sup>[1](#notes)</sup>,
+which suggested using CSS classes like `leaflet-bottom` and `leaflet-left` for positioning. While this approach rendered
+the control correctly, I discovered that it existed outside Leaflet's internal DOM container for controls.
+This independence from Leaflet's layout flow causes positioning conflicts where custom controls will overlap and clash
+with other controls 🫣.
+
+<Figure caption="Custom legend control overlapping the zoom control">
+  <Image src={leafletControlOverlapImage}
+         class="mx-auto"
+         title="Overlapping Leaflet controls"
+         alt="Overlapping Leaflet controls"
+         loading="eager"/>
+</Figure>
+
+## Map Control Component
+
+To solve this problem, we'll create a component that registers a Leaflet control and uses a React
+portal<sup>[2](#notes)</sup> to render child components inside it. This will allow us to build React controls that are
+then rendered directly within Leaflet's internal DOM, improving the integration of our custom control and resolving
+the overlap issue.
+
+### Props
+First, define an interface for the props that our parent component will use:
+
+<Figure caption="TypeScript interface representing the props">
+```typescript
+export interface MapControlProps {
+  position: ControlPosition;
+  disableClickPropagation?: boolean;
+}
+```
+</Figure>
+
+The `position` prop is any valid Leaflet control position that places the control on the map. These can be any of the four
+following strings: `topleft`, `topright`, `bottomleft`, `bottomright`.
+
+The other prop `disableClickPropagation` is a boolean value, which when true prevents clicks on the control from escaping
+to the map beneath. This is useful if you wish to allow the user to highlight text within the control.
+
+
+### Component Skeleton
+
+Next let's create a skeleton for our control. We know that it will need to render a child node inside a portal, so
+we'll start there.
+
+<Figure caption="Map control component skeleton">
+```tsx
+export function MapControl({position, disableClickPropagation, children}: PropsWithChildren<MapControlProps>) {
+  const [container, setContainer] = useState<HTMLElement | null>(null);
+
+  // TODO - register a new Leaflet control and get its reference
+
+  return container ? createPortal(children, container) : null;
+}
+```
+</Figure>
+
+The `container` state will hold a reference to the Leaflet control element and using `createPortal` we will be able to render
+child components inside it.
+
+### Registering a new Leaflet control
+
+To create a new control instance we can use Leaflets `Control` class. Then use the `onAdd` method to return an empty
+`<section>` element when the control is added to the map. The `container` state will be updated to hold a reference to
+this element.
+
+To add the control to the map we need a reference to the map itself. React Leaflet provides a `useMap` hook that returns a reference to
+the map for any descendants of the `MapContainer`. We will use it here when adding our control.
+
+Finally, so that our map control renders whenever a prop changes, we place all this logic inside a `useEffect` hook, and the
+props within its dependency array.
+
+<Figure caption="Creating a new Leaflet control">
+```tsx
+const map = useMap();
+
+useEffect(() => {
+  // Create a new map control
+  const mapControl = new Control({position});
+
+  mapControl.onAdd = () => {
+    const section = DomUtil.create('section');
+    if (disableClickPropagation === true) {
+      // All click events will stop at the control and not pass through to the map
+      DomEvent.disableClickPropagation(section);
+    }
+  }
+
+  // Add the control to the map
+  map.addControl(mapControl);
+  // Store the container element to use in the portal
+  setContainer(mapControl.getContainer() ?? null);
+
+  // Clean up when the component unmounts
+  return () => {
+    map.removeControl(mapControl);
+  }
+},[map, position, disableClickPropagation]);
+```
+</Figure>
+
+The `position` prop is passed to the `Control` constructor and will determine where the control is placed within the map.
+If the `disableClickPropagation` prop is true then using the `DomEvent` utility class we prevent clicks on the control
+passing through to the map beneath.
+
+Lastly, a clean up function is returned so, should the component unmount, the control will be safely removed from the map before
+the next one is created.
+
+### Usage
+
+Our final `MapControl` component should look something like this.
+
+<Figure caption="Our MapControl component in full">
+```tsx
+import { useEffect, useState } from 'react';
+import { useMap } from 'react-leaflet';
+import { createPortal } from 'react-dom';
+import { Control, DomEvent, DomUtil } from 'leaflet';
+import type { ControlPosition } from 'leaflet';
+import type { PropsWithChildren } from 'react';
+
+export interface MapControlProps {
+  position: ControlPosition;
+  disableClickPropagation?: boolean;
+}
+
+export function MapControl({position, disableClickPropagation, children}: PropsWithChildren<MapControlProps>) {
+  const [container, setContainer] = useState<HTMLElement | null>(null);
+  const map = useMap();
+
+  useEffect(() => {
+    // Create a new map control
+    const mapControl = new Control({position});
+
+    mapControl.onAdd = () => {
+      const section = DomUtil.create('section');
+      if (disableClickPropagation === true) {
+        // All click events will stop at the control and not pass through to the map
+        DomEvent.disableClickPropagation(section);
+      }
+      return section;
+    };
+
+    // Add the control to the map
+    map.addControl(mapControl);
+
+    // Store the container element to use in the portal
+    setContainer(mapControl.getContainer() ?? null);
+
+    // Clean up when the component unmounts
+    return () => {
+      map.removeControl(mapControl);
+    };
+  }, [map, position, disableClickPropagation]);
+
+  return container ? createPortal(children, container) : null;
+}
+```
+</Figure>
+
+We can now use the `MapControl` to render any child components inside a Leaflet control.
+
+<Figure caption="Using the MapControl component">
+```tsx
+export default function Map() {
+  // ...
+
+  return (
+    <MapContainer center={[0, 0]}
+                  zoom={15}
+                  style={{height: "100%", width: "100%"}}>
+      <TileLayer
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+      />
+      <MapControl position="topleft" disableClickPropagation={true}>
+        <div className="leaflet-bar leaflet-touch p-2 bg-white text-slate-800">
+          <p>A Custom Control!</p>
+        </div>
+      </MapControl>
+    </MapContainer>
+  )
+}
+```
+</Figure>
+
+Here we have a custom control that renders a `<div>` with some text. The `leaflet-bar` and `leaflet-touch` classes are
+just some classes from Leaflet that we can use to keep the style of the control consistent with the default Leaflet appearance.
+
+When we view our map now, we will see our custom control at the top left of the map below the native zoom control. No overlap 🙌!
+
+<Figure caption="Our custom control rendered on the map">
+  <Image src={leafletCustomControlImage}
+         class="mx-auto"
+         title="Custom Leaflet control"
+         alt="Custom Leaflet control"/>
+</Figure>
+
+## Problem Solved
+With the `MapControl` component I can go back and supply my legend control as a child and it should no longer have
+positioning issues.
+
+<Figure caption="Supplying MapLegend as a child of MapControl">
+```tsx
+<MapControl position="topleft" disableClickPropagation={true}>
+  <MapLegend entries={cathedralLegend}/>
+</MapControl>
+```
+</Figure>
+
+Success! My custom legend control as been integrated with Leaflet's internal layout flow 🥳.
+<Figure caption="My legend control no longer overlaps!">
+  <Image src={leafletCustomLegendImage}
+         class="mx-auto"
+         title="Custom Leaflet control"
+         alt="Custom Leaflet control"/>
+</Figure>
+
+### Comparison with other approaches
+
+Alternatively, React Leaflet provides a function called `createControlComponent`<sup>[3](#notes)</sup>.
+This function wraps a Leaflet Control class in a React component, making it particularly valuable when integrating
+existing Leaflet controls.
+
+A typical `createControlComponent` approach might look something like this:
+
+<Figure caption="Using React Leaflet's createControlComponent function">
+```tsx
+// Leaflet Control defined using Leaflet's Control class
+const InfoControlDefinition = Control.extend({
+  onAdd: (map) => {
+    const container = DomUtil.create('section');
+    container.innerHTML = `
+      <div class="leaflet-bar leaflet-touch">
+        <p>A Custom Control!</p>
+        <button class="info-button">ℹ️</button>
+      </div>`;
+
+    // Manual event handling
+    const infoButton = container.querySelector('.info-button');
+    infoButton?.addEventListener('click', () => {
+      console.log('Info clicked!');
+    });
+
+    return container;
+  },
+
+  onRemove: (map) => {
+    // Clean-up, remove event listeners, etc...
+  }
+});
+
+export const InfoControl = createControlComponent((props) => new InfoControlDefinition(props));
+
+// Usage:
+<InfoControl position="bottomright" />
+
+```
+</Figure>
+
+This approach can be useful when integrating with existing Leaflet plugins or when you're already familiar with the
+traditional Leaflet control creation API. However, it often requires working with string-based markup and
+manual event handling.
+
+The React portal approach I've demonstrated offers an alternative solution with a couple of advantages:
+
+1) ⚛️ **React-centric development**: You can write controls using JSX/TSX syntax. This provides all the benefits of
+React's component model and avoids string-based markup and manual event handling.
+2) ♻️ **Reusability**: The MapControl component encapsulates the integration logic, making it easy to create multiple different controls.
+
+Importantly, the portal approach doesn't sacrifice any functionality from Leaflet's API - you still have complete access
+to the map instance and all Leaflet's features through the useMap hook.
+
+## Notes
+1. React Leaflet Example Control: https://react-leaflet.js.org/docs/example-react-control/
+2. React portal documentation: https://react.dev/reference/react-dom/createPortal
+3. createControlComponent function: https://react-leaflet.js.org/docs/core-api/#createcontrolcomponent
