@@ -5,9 +5,11 @@ title: '02-05-2025-custom-react-leaflet-control'
 
 import Figure from '../../components/Figure.astro';
 import {Image} from 'astro:assets';
+import Link from '../../components/Link.astro';
 import leafletControlOverlapImage from '../../assets/images/leaflet-control-overlap.png';
 import leafletCustomControlImage from '../../assets/images/leaflet-custom-control.png';
 import leafletCustomLegendImage from '../../assets/images/leaflet-custom-legend.png';
+export const components = {a: Link};
 
 # Building a custom Leaflet control with React Leaflet
 
@@ -234,7 +236,18 @@ Success! My custom legend control as been integrated with Leaflet's internal lay
 
 ### Comparison with other approaches
 
-Alternatively, React Leaflet provides a function called `createControlComponent`<sup>[3](#notes)</sup>.
+There exists a package called [react-leaflet-custom-control](https://www.npmjs.com/package/react-leaflet-custom-control)
+that takes a similar portal based approach. However, our implementations differ slightly.
+
+My approach uses the Leaflet API to create a new control, then the container for that control is used as the portal target.
+On the other hand, the react-leaflet-custom-control package gets its portal target by using `getElementsByClassName`<sup>[3](#notes)</sup> to
+retrieve a reference to the appropriate Leaflet corner container e.g. `<div class='leaflet-top leaflet-left'>`
+or `<div class='leaflet-top leaflet-right'>` etc...
+
+Though our approaches are similar, the approach I've laid out here may be preferable over the package if you want to
+leverage Leaflet's API and have it responsible for placing the controls or you just want to avoid having another dependency.
+
+Another alternative is a function provided by React Leaflet called `createControlComponent`<sup>[4](#notes)</sup>.
 This function wraps a Leaflet Control class in a React component, making it particularly valuable when integrating
 existing Leaflet controls.
 
@@ -274,20 +287,24 @@ export const InfoControl = createControlComponent((props) => new InfoControlDefi
 ```
 </Figure>
 
-This approach can be useful when integrating with existing Leaflet plugins or when you're already familiar with the
-traditional Leaflet control creation API. However, it often requires working with string-based markup and
-manual event handling.
+Using `createControlComponent` can be useful when integrating with existing Leaflet plugins or when you're already familiar with the
+traditional Leaflet control creation API. However, it often requires working with string-based markup and manual event handling.
 
-The React portal approach I've demonstrated offers an alternative solution with a couple of advantages:
+In contrast the **React portal approach**, either mine or the one implemented in the `react-leaflet-custom-control` package,
+comes with a couple of advantages that avoids these pitfalls:
 
 1) ⚛️ **React-centric development**: You can write controls using JSX/TSX syntax. This provides all the benefits of
 React's component model and avoids string-based markup and manual event handling.
-2) ♻️ **Reusability**: The MapControl component encapsulates the integration logic, making it easy to create multiple different controls.
+2) ♻️ **Reusability**: The custom control component encapsulates the integration logic, making it easy to create multiple different controls.
 
 Importantly, the portal approach doesn't sacrifice any functionality from Leaflet's API - you still have complete access
 to the map instance and all Leaflet's features through the useMap hook.
 
+
+
+
 ## Notes
 1. React Leaflet Example Control: https://react-leaflet.js.org/docs/example-react-control/
 2. React portal documentation: https://react.dev/reference/react-dom/createPortal
-3. createControlComponent function: https://react-leaflet.js.org/docs/core-api/#createcontrolcomponent
+3. React Leaflet Custom Control package portal logic: https://github.com/chris-m92/react-leaflet-custom-control/blob/master/src/Control.tsx#L43
+4. createControlComponent function: https://react-leaflet.js.org/docs/core-api/#createcontrolcomponent
