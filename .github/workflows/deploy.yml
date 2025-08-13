@@ -35,8 +35,13 @@ jobs:
           ssh ${{secrets.VPS_USER}}@${{secrets.VPS_HOST}} \
           "mkdir -p /home/${{secrets.VPS_USER}}/bkups && cp -r /srv/www/rrayns /home/${{secrets.VPS_USER}}/bkups/rrayns-bkup"
 
+      # Sync build files to server - only transfers changed files and removes old ones
       - name: Deploy via rsync
         run: |
+          # a - archive (preserves permissions)
+          # v - verbose
+          # z - compress (during transfer)
+          # r - recursive
           rsync -avzr --delete dist/ ${{secrets.VPS_USER}}@${{secrets.VPS_HOST}}:/srv/www/rrayns
 
       - name: Copy the experiments directory to rrayns static files

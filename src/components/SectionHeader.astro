@@ -1,7 +1,7 @@
 ---
 export interface Props {
   class?: string;
-  gradientColour?: 'sky' | 'cyan' | 'pink' | 'emerald';
+  gradientColour?: 'sky' | 'cyan' | 'pink' | 'emerald' | 'orange';
 }
 
 let {class: className, gradientColour} = Astro.props;
@@ -12,6 +12,9 @@ if (gradientColour === 'sky') {
   gradientClasses = 'from-fuchsia-200 dark:from-transparent to-transparent dark:to-fuchsia-300'
 } else if (gradientColour === 'emerald') {
   gradientClasses = `from-emerald-200 dark:from-transparent to-transparent dark:to-emerald-300`
+} else if (gradientColour === 'orange') {
+  gradientClasses = `from-orange-200 dark:from-transparent to-transparent dark:to-orange-300`
+
 }
 className = `${className} ${gradientClasses} antialiased bg-gradient-to-r text-slate-700 dark:text-slate-100 text-xl font-thin rounded-md md:w-[75%] p-1 my-4 relative overflow-hidden`;
 ---
