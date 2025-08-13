@@ -1,0 +1,45 @@
+name: Deploy
+
+on: [push]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "lts/*"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+        # Add server's host key to known_hosts to prevent "unknown host" prompts during SSH
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          # Pre-fetch server's public key to avoid SSH host verification prompt
+          ssh-keyscan -H ${{secrets.VPS_HOST}} >> ~/.ssh/known_hosts
+
+      - name: Backup existing deployment
+        run: |
+          ssh ${{secrets.VPS_USER}}@${{secrets.VPS_HOST}} \
+          "mkdir -p /home/${{secrets.VPS_USER}}/bkups && cp -r /srv/www/rrayns /home/${{secrets.VPS_USER}}/bkups/rrayns-bkup"
+
+      - name: Deploy via rsync
+        run: |
+          rsync -avzr --delete dist/ ${{secrets.VPS_USER}}@${{secrets.VPS_HOST}}:/srv/www/rrayns
+
+      - name: Copy the experiments directory to rrayns static files
+        run: |
+          ssh ${{secrets.VPS_USER}}@${{secrets.VPS_HOST}} \
+          "cp -r /home/${{secrets.VPS_USER}}/bkups/rrayns-bkup/experiments /srv/www/rrayns"
