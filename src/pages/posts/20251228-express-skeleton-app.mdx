@@ -1,0 +1,286 @@
+---
+layout: ../../layouts/BlogPostLayout.astro
+title: '28-12-2025-express-skeleton-app'
+---
+
+
+import Figure from '../../components/Figure.astro';
+import Link from '../../components/Link.astro';
+import PostTitle from '../../components/PostTitle.astro';
+import IconButton from '../../components/IconButton.astro';
+export const components = {a: Link};
+
+<PostTitle emoji='💀'>Express.js skeleton app</PostTitle>
+
+Express.js is minimalist and unopinionated, which is great in the freedom this provides when structuring a Node API.
+
+Over time, I have settled on a structure to fill some of those unopinionated gaps, and to provide a reference to this structure I've created a skeleton Express.js app that can serve as a start point for any Express based project. This post walks through the architecture of this Express app, highlighting and explaining various aspects.
+
+<IconButton class="my-4" icon="github" url="https://github.com/r-rayns/example-express-skeleton">View on GitHub</IconButton>
+
+## Architecture
+
+### Server Initiation 💥
+
+The entry point of the API is `app.ts`. Here the express server is instantiated, then wrapped in Node's native HTTP server and finally set up to listen for incoming requests.
+
+<Figure caption="app.ts where the express server is started">
+```typescript
+const expressServer = createExpressServer();
+const httpServer = createServer(expressServer);
+
+httpServer.listen(env.PORT, () => {
+  logger.log(chalk.blue(`⚡️ The express server is listening for HTTP clients on port ${env.PORT}`));
+});
+    ```
+</Figure>
+
+The `createExpressServer`<sup>[1](#notes)</sup> function initialises the Express server, registers middleware like the logger and configures CORS.
+
+Routes are then mounted under the `/api` path, with any invalid routes getting caught and served with a 404 response.Finally, a global error handler is created to act as a backstop for any uncaught errors thrown by the application.
+
+<Figure caption="express-server.ts handles the servers initial configuration">
+```typescript
+export function createExpressServer(): Express {
+  const isProduction = env.NODE_ENV === NodeEnv.PRODUCTION;
+
+  const expressServer: Express = express();
+  // Set up the request-response logger
+  expressServer.use(requestResponseLogger);
+
+  expressServer.use(express.json({ limit: '2MB' }));
+
+  if (!isProduction) {
+    // Permissive CORS policy only in development, default in production
+    expressServer.use(cors({ origin: '*' }));
+  } else {
+    // Basic production CORS policy (Update inline with project specific needs)
+    expressServer.use(cors({
+      origin: false, // Blocks all CORS - update inline with project needs
+      methods: [ 'GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS' ],
+      maxAge: 86_400, // 24 hours preflight cache
+    }));
+  }
+
+  // Set up the API routes
+  expressServer.use('/api', api);
+
+  // Catch invalid routes
+  expressServer.use('', () => {
+    throw missingRoute;
+  });
+
+  // Error handler must be placed after all other routes have been set up
+  // This will gracefully handle any unexpected errors
+  expressServer.use(errorHandler());
+
+  return expressServer;
+}
+```
+</Figure>
+
+### Environment Variables 🌳
+
+Handling of environment variables is done by the `EnvLoaderService`<sup>[2](#notes)</sup>. This service is a singleton that exports just the `env` property, which can then be imported across the application to access environment variables. To ensure the .env file is correct and complete, it's validated using a [Zod](https://zod.dev/) schema (`env.schema.ts`). This provides clear feedback when environment configuration is missing or invalid.
+
+### Routes, Controllers & Services: Separation of Concerns 🚏
+
+Routes are organised into directories within `src/routes/`, where each grouping of routes has its own directory containing route definitions (e.g., `routes/menu/menu.routes.ts` and `routes/utility/utility.routes.ts`). These individual route files are aggregated in `routes/api.ts`<sup>[3](#notes)</sup>, which mounts all routes under the `/api` path.
+
+<Figure caption="Routes being aggregated in api.ts">
+```typescript
+import express from 'express';
+import { utilityRoutes } from './utility/utility.routes';
+import { menuRoutes } from './menu/menu.routes';
+
+const router = express.Router();
+
+utilityRoutes(router);
+menuRoutes(router);
+
+export default router;
+
+```
+</Figure>
+
+Each route definition chains middleware (such as validation) before passing control to a controller. Controllers receive the validated request and delegate to services, which handle the business logic and data operations. This separation keeps routes focused on path definitions and middleware, controllers as simple request handlers, and services centered on the domain logic.
+
+### Route Validation ✅
+
+Validation<sup>[4](#notes)</sup> is done using Zod schemas, all of which are defined in the `validation-schema` directory. For each route a middleware factory function is called that generates a validator based on the provided schema and optionally the request property to be checked (body, params or query - defaults to body).
+
+When a route is hit, the generated validator middleware runs, parsing the request, checking for invalid values and performing any value transformations. This is then written back to the request object, replacing the original set of values.
+
+<Figure caption="A snippet from the factory function that returns validation middleware">
+```typescript
+export const validate = (schema: z.ZodTypeAny, property: ValidationProperty = ValidationProperty.BODY) => {
+  // Return the validation middleware
+  return async (req: Request, res: Response, next: NextFunction) => {
+    const value: unknown = req[ property ];
+    logger.debug('Received value', JSON.stringify(value), 'for property', property);
+
+    try {
+      // Parse the value using the provided schema
+      const parsedValues = await schema.parseAsync(value);
+      // Now overwrite the raw request value with the parsed data
+      if (property === ValidationProperty.QUERY) {
+        // In Express req.query is a readonly getter which we cannot mutate
+        // Instead we must replace the entire query object with the parsed values
+        Object.defineProperty(req, 'query', {
+          value: parsedValues,
+          writable: false, // Keep as readonly
+        });
+      } else {
+        // We can mutate req.body and req.params so just overwrite with the validated values
+        req[ property ] = parsedValues;
+      }
+      next();
+    }
+  }
+```
+</Figure>
+
+Once the route passes the request to the controller, we can be confident it has been validated, allowing the controller and service to be less defensive when processing the request. Multiple validation middleware can be used in a single route, enabling validation of different parts of the request object.
+
+<Figure caption="An example GET endpoint using validation middleware to validate the request parameters and body">
+```typescript
+// Add to a menu (Example body request)
+router.post('/menus/:type/items',
+  validate(menuTypeParamSchema, ValidationProperty.PARAMS),
+  validate(menuAddItemSchema, ValidationProperty.BODY),
+  menuController.add,
+);
+```
+</Figure>
+
+#### Validation schema type inference
+
+Zod transformations can cause the input and output types to diverge. To help with typing, Zod provides a really handy way of extracting type definitions of schema. Through the use of `z.output<MySchema>` Zod gives us the type definition of the values after they are parsed by the schema. While `z.infer<MySchema>` and `z.input<MySchema>` gives us the type definitions before parsing. These utilities are used to type the incoming requests within the controllers.
+
+<Figure caption="Using z.output to type the request parameter of a controller">
+```typescript
+// Express request with a typed body
+export interface RequestWithBody<T> extends Request {
+  body: T;
+}
+
+// Express request with a typed set of validated params
+// Intersection type to get around the strict typing of Express `params` where they must all be strings.
+export type RequestWithValidatedParams<T> = Request & {params: T};
+
+// This can then be used to type our controller
+export type AddMenuItemRequest =
+  RequestWithValidatedParams<z.output<typeof menuTypeParamSchema>>
+  & RequestWithBody<z.output <typeof menuAddItemSchema>>;
+
+// Our controller with a typed request object
+function add(req: AddMenuItemRequest, res: Response, next: NextFunction) {
+  //...
+```
+</Figure>
+
+If the data fails the Zod schema then an error is thrown by Zod and caught within the validator middleware. Here we then distinguish between an error generated internally by Zod (a `ZodError`) or something unexpected.
+
+### Error Handling 🤹‍♂️
+
+It is important that errors are consistent as this helps to keep the error handling on the client as simple as possible. For this reason all errors returned to the client have a `type`, `error` and `details` property.
+
+- `type` - provides a name for the error in snake case
+- `error` - a human-readable summary of the error
+- `details` - any additional details that provide context to the error such as the issues object of a ZodError
+
+To help keep the errors thrown within the API standardised, there exists an `ApiError`<sup>[5](#notes)</sup> class. This class extends the JavaScript `Error` interface and takes as arguments the error message, status code, type and any optional details. The status code argument is typed using status code enums rather than numeric codes, where the enum value is the numeric code and the label provides a plain English description of the status.
+
+<Figure caption="The ApiError class with the status code enums">
+```typescript
+export enum ClientError {
+  BAD_REQUEST = 400,
+  UNAUTHORIZED = 401,
+  FORBIDDEN = 403,
+  NOT_FOUND = 404,
+  CONFLICT = 409,
+}
+
+export enum ServerError {
+  INTERNAL_SERVER_ERROR = 500,
+  NOT_IMPLEMENTED = 501,
+  SERVICE_UNAVAILABLE = 503,
+}
+
+export class ApiError extends Error {
+  public message: string;
+  public statusCode: ClientError | ServerError;
+  public type: ErrorType;
+  public details: unknown = null;
+
+  constructor(message: string, statusCode: ClientError | ServerError, type: ErrorType, details: unknown = null) {
+    super();
+    this.message = message;
+    this.statusCode = statusCode;
+    this.type = type;
+    this.details = details;
+  }
+}
+```
+</Figure>
+
+Across the app all errors flow through the error handler middleware<sup>[6](#notes)</sup>, which is registered last in the middleware chain within the `createExpressServer` function. The middleware distinguishes between `ApiError` instances and unknown errors. For `ApiError` instances, it responds to the client using the error's properties: the status code and the type, message and details formatted as JSON. Unknown errors return a generic 500 response.
+
+<Figure caption="Error handling middleware">
+```typescript
+const errorHandler = () => {
+  // Do not remove the _next parameter as it will change the signature of the middleware and err will become the res
+  return (err: Error | ApiError, req: Request, res: Response, _next: NextFunction): void => {
+    if (err instanceof ApiError) {
+      logger.log(chalk.red(`API ERROR: ${ err.message } - [${ err.statusCode }]`));
+      res.status(err.statusCode).json({ type: err.type, error: err.message, details: err.details });
+    } else {
+      logger.log(chalk.red('UNKNOWN ERROR:'), err?.message || err);
+      res.status(ServerError.INTERNAL_SERVER_ERROR).json({
+        type: ErrorType.SERVER_ERROR,
+        error: 'Server Error',
+        details: null,
+      });
+    }
+  };
+};
+```
+</Figure>
+
+To accompany this error handling approach, commonly used errors - such as errors thrown for a missing resource - are instantiated and exported from `utils/errors.ts`<sup>[7](#notes)</sup> making for easy reuse.
+
+### Logging 💬
+
+Logging is centralised via a Logger class<sup>[8](#notes)</sup> that is instantiated and provided as a singleton for use throughout the app.
+
+<Figure caption="Exporting the logger as a singleton">
+```typescript
+// Singleton
+const logger = Object.freeze(new Logger({
+  debugEnabled: true,
+  isProduction: env.NODE_ENV === NodeEnv.PRODUCTION,
+}));
+
+export default logger;
+```
+</Figure>
+
+When logging locally during development it can be beneficial to colour the text so that it doesn't all turn into grey gloop. To make colouring the text easy, the [chalk](https://www.npmjs.com/package/chalk) library is used, which colours text using [ANSI codes](https://en.wikipedia.org/wiki/ANSI_escape_code). However, when running in production you'll probably be reading log files in an environment that doesn't support ANSI codes. In this case, the codes would be rendered as text and clutter the logs. So that we can have the best of both worlds, the log function in the Logger class will strip logs of ANSI codes if the production flag is set.
+
+#### Request & Response Logger
+
+The request response logger (`request-response-logger.ts`) is a middleware that pretty prints details of the request and its response. This includes the request type along with the status of the response and the time it took to resolve.
+
+## A Bare-bones Summary
+
+This [skeleton](https://github.com/r-rayns/example-express-skeleton) serves as a basic example or starting point for structing an Express.js API. It is intentionally minimal, demonstrating patterns for organising an Express application whilst leaving room for project-specific choices around authentication, databases, and other concerns.
+
+## Notes
+1. createExpressServer - express-server.ts : https://github.com/r-rayns/example-express-skeleton/blob/main/src/express-server.ts
+2. EnvLoaderService - env-loader.service.ts : https://github.com/r-rayns/example-express-skeleton/blob/main/src/services/env-loader.service.ts
+3. Route aggregation - api.ts : https://github.com/r-rayns/example-express-skeleton/blob/main/src/routes/api.ts
+4. Validation middleware factory - validator.ts : https://github.com/r-rayns/example-express-skeleton/blob/main/src/middleware/validator.ts
+5. ApiError class - api-error.ts : https://github.com/r-rayns/example-express-skeleton/blob/main/src/utils/api-error.ts
+6. Error handler middleware - error-handler.ts : https://github.com/r-rayns/example-express-skeleton/blob/main/src/middleware/error-handler.ts
+7. Common errors - error.ts : https://github.com/r-rayns/example-express-skeleton/blob/main/src/utils/errors.ts
+8. Logger class - logger.ts : https://github.com/r-rayns/example-express-skeleton/blob/main/src/utils/logger.ts
