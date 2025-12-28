@@ -33,7 +33,10 @@ jobs:
       - name: Backup existing deployment
         run: |
           ssh ${{secrets.VPS_USER}}@${{secrets.VPS_HOST}} \
-          "mkdir -p /home/${{secrets.VPS_USER}}/bkups && cp -r /srv/www/rrayns /home/${{secrets.VPS_USER}}/bkups/rrayns-bkup"
+          "mkdir -p /home/${{secrets.VPS_USER}}/bkups && \
+          cp -r /srv/www/rrayns /home/${{secrets.VPS_USER}}/bkups/rrayns-bkup-\$(date +%Y%m%d-%H%M%S) && \
+          cd /home/${{secrets.VPS_USER}}/bkups && \
+          ls | grep rrayns-bkup | tail -n +4 | xargs -r rm -rf"
 
       # Sync build files to server - only transfers changed files and removes old ones
       - name: Deploy via rsync
