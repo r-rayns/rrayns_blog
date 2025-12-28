@@ -10,9 +10,11 @@ import spookyAdmin from '../../assets/images/spookykingdom-admin.png';
 import Figure from '../../components/Figure.astro';
 import Link from '../../components/Link.astro';
 import IconButton from '../../components/IconButton.astro';
+import PostTitle from '../../components/PostTitle.astro';
 export const components = { a: Link };
 
-# Spooky Kingdom - a spooky news archive
+<PostTitle emoji='👻'>Spooky Kingdom - a spooky news archive</PostTitle>
+
 Having previously created a "spooky" news webcrawler I wanted to make the database of crawled paranormal articles accessible over the web, so I built and deployed https://spookykingdom.co.uk. On the site you are able to browse articles and filter them by date, subject and publisher. As well as a convenient way to view the database Spooky Kingdom also features admin controls that allow me to review and edit each article.
 <Figure caption="Spooky Kingdom admin controls for editing">
   <Image src={spookyAdmin}

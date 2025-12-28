@@ -6,9 +6,11 @@ import Figure from '../../components/Figure.astro';
 import Link from '../../components/Link.astro';
 import Video from '../../components/Video.astro';
 import IconButton from '../../components/IconButton.astro';
+import PostTitle from '../../components/PostTitle.astro';
 export const components = {a: Link, Video};
 
-# Inky Dash
+<PostTitle emoji='🐙'>Inky Dash</PostTitle>
+
 [Inky Dash](https://github.com/r-rayns/inky_dash) is an interface for [Inky pHAT](https://shop.pimoroni.com/products/inky-phat?variant=12549254217811), an ePaper display for the Raspberry Pi, that can be accessed from a browser via a local web server. I wanted a fast and easy way to upload images to the ePaper display.
 
 The project is structured as a monorepo with the server and UI code bundled together. By treating the application as a whole it meant fewer steps were needed to deploy and run it.

@@ -7,9 +7,10 @@ import Figure from '../../components/Figure.astro';
 import emptyStation from '../../assets/images/e-ink-empty.jpg';
 import trainAtStation from '../../assets/images/e-ink-train.jpg';
 import Link from '../../components/Link.astro';
+import PostTitle from '../../components/PostTitle.astro';
 export const components = { a: Link };
 
-# Station watcher e-ink display
+<PostTitle emoji='🚉'>Station watcher e-ink display</PostTitle>
 After introducing an elderly family member to the marine traffic website I had the idea for a display that overlays live ship locations onto a historic map. Unfortunately API's for marine traffic are not easily accessible unless you pay a fee. Looking for a free transport API I discovered National Rail's Darwin data feed, though I would rather it not have been a SOAP API I decided to use it to build a real-time display of train data.
 
 <Figure caption="The e-ink displaying showing an empty station">

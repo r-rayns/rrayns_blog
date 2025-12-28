@@ -1,0 +1,13 @@
+---
+export interface Props {
+    emoji: string;
+}
+
+const {emoji} = Astro.props;
+---
+
+<h1 class="flex">
+    <span aria-hidden="true" class="flex items-center border-r-2 px-2 mr-2
+    border-cyan-100 dark:border-emerald-300 border-dotted">{emoji}</span>
+    <slot/>
+</h1>

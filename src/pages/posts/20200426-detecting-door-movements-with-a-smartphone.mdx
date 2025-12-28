@@ -5,9 +5,11 @@ title: '26-04-2020-Detecting-Door-Movements-With-A-Smartphone'
 import Figure from '../../components/Figure.astro';
 import Link from '../../components/Link.astro';
 import Video from '../../components/Video.astro';
+import PostTitle from '../../components/PostTitle.astro';
 export const components = { a: Link, Video };
 
-# Detecting door movements with a smartphone
+<PostTitle emoji='🚨'>Detecting door movements with a smartphone</PostTitle>
+
 As a proof of concept I wanted to see if I could pass readings from a door mounted accelerometer to a decision tree algorithm to predict if the door is opening or closing when movement is detected. Using an old smartphone I built an App that takes data from the phones accelerometer and builds a predictive model to classify the movement of a door.
 
 After fixing the phone to a door the first step is to collect the data to train the model. This is done by repeating three steps a number of times. At the start of each step a three second countdown beings after which accelerometer data is collected every 100ms over a one second period and averaged into a single set of x, y and z axis readings.
